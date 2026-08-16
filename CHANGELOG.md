@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.2 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** a repeated Lua error from the floating navigation HUD when Retail WoW returned `GetUnitSpeed("player")` as a secret number. The HUD was comparing that protected value to a normal number while calculating ETA, which tainted execution and produced `attempt to compare local 'speed' (a secret number value...)` from `NavigationHUD.lua`.
+
+* **Changed** the navigation HUD to stop reading player movement speed for ETA calculations. The HUD continues to show the selected quest, quest status, rotating direction arrow, and distance in yards when usable map/world-position data is available.
+
+* **Improved** compatibility with Retail's protected/secret-value behavior by avoiding arithmetic and comparisons involving the movement-speed return value instead of trying to work around a protected value.
+
+* **Confirmed** from the player's in-game Zidormi dialog that **"Show me the Blasted Lands before the invasion."** corresponds to the character currently being in the **PRESENT / Iron Horde** version of Blasted Lands. The player also reported visible objectives for **Under Siege** in that phase, matching the phase requirement currently assigned to that quest.
+
+*In-game testing is still required after updating to confirm the secret-number error no longer occurs, the distance display continues updating normally, and the timeline-switch arrow still behaves correctly after switching between Blasted Lands phases.*
+
+---
+
 **VERSION 0.2.1 - August 16, 2026 - Available on GitHub**
 
 * **Added** timeline-switch navigation guidance. When Zone Quest Guide knows the selected quest belongs to a different historical version of the current zone, the existing floating navigation HUD can now switch from the quest objective to the zone's timeline-switch NPC and display **SWITCH TIMELINE** instead of directing the player toward an unavailable objective.
