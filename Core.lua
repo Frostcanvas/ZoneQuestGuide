@@ -53,6 +53,34 @@ local function PrereqsMet(prereqs)
     return true
 end
 
+local function AnyQuestCompleted(questIDs)
+    if not questIDs or #questIDs == 0 then
+        return false
+    end
+
+    for _, questID in ipairs(questIDs) do
+        if IsCompleted(questID) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function AnyQuestActiveOrCompleted(questIDs)
+    if not questIDs or #questIDs == 0 then
+        return false
+    end
+
+    for _, questID in ipairs(questIDs) do
+        if IsOnQuest(questID) or IsCompleted(questID) then
+            return true
+        end
+    end
+
+    return false
+end
+
 local function CurrentMapID()
     if not C_Map or not C_Map.GetBestMapForUnit then
         return nil
@@ -91,6 +119,12 @@ local function AddQuest(result, seen, quest)
         return
     end
     if not PrereqsMet(quest.prereqs) then
+        return
+    end
+    if AnyQuestCompleted(quest.blockedBy) then
+        return
+    end
+    if AnyQuestActiveOrCompleted(quest.exclusiveWith) then
         return
     end
 
@@ -266,6 +300,8 @@ local function CollectStaticQuests(mapID, result, seen)
             x = info.x,
             y = info.y,
             prereqs = info.prereqs,
+            blockedBy = info.blockedBy,
+            exclusiveWith = info.exclusiveWith,
             faction = info.faction,
             source = "database",
         })
