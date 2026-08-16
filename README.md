@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.2  
+**Version:** 0.2.3  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -19,6 +19,8 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Supports location hints such as **UPPER LEVEL** for confusing vertical quest locations.
 - Supports historical/time-phase zones controlled by NPCs such as Zidormi.
 - Can redirect the navigation arrow to a timeline-switch NPC when the selected quest belongs to another historical version of the zone.
+- Learns phase/quest evidence locally while Horde and Alliance characters play in known historical phases.
+- Exports anonymous phase-learning data for community contributions.
 
 ## Navigation HUD
 
@@ -36,7 +38,7 @@ The floating navigation HUD remains visible independently of the main quest list
 
 Zone Quest Guide does not currently calculate a movement-speed ETA. On current Retail clients, Blizzard can return `GetUnitSpeed("player")` as a secret value. Comparing or doing arithmetic with that protected value from addon code can taint execution and produce a Lua error.
 
-Version 0.2.2 removes the movement-speed ETA calculation and keeps the safe navigation information: direction, target, status, and distance when available.
+Version 0.2.2 removed the movement-speed ETA calculation and keeps the safe navigation information: direction, target, status, and distance when available.
 
 ### Timeline-switch arrow
 
@@ -53,6 +55,41 @@ Initial Blasted Lands Horde coverage includes:
 - **Zidormi** near the northern Blasted Lands border is the configured phase switch target.
 
 After the player changes to the required timeline and the guide refreshes, navigation returns to the real quest target.
+
+## Phase learning
+
+Version 0.2.3 adds an account-wide local learning database inside `ZoneQuestGuideDB`.
+
+When Zone Quest Guide already has a reliable historical-phase signal for the current map, it records live quest evidence supplied by WoW. Reliable phase signals currently include Zidormi detection, a configured detector, or a manual `/zq phase` override.
+
+The learner can record:
+
+- quests WoW reports as available on the current map;
+- quests offered by an NPC;
+- accepted quests on the current map;
+- active quests shown by an NPC;
+- quests accepted while the phase is known;
+- quests turned in while the phase is known;
+- whether a recorded quest has been completed on a character that observed it.
+
+Data is separated by **map**, **faction**, **quest ID**, and **phase**. Because `ZoneQuestGuideDB` is an account-wide SavedVariable, Horde and Alliance alts on the same WoW account can contribute to the same local dataset while still being kept in separate faction buckets.
+
+The learner deliberately does **not** infer a timeline from a completed quest alone. A character may have completed that quest in another historical version earlier, so completion is stored as supporting information rather than proof that the quest belongs to the phase currently being viewed.
+
+The learner also does not automatically promote observations into official `QuestPhaseRequirements`. A quest seen in one phase may still exist in another phase under different prerequisites. Learned observations are evidence that can be reviewed and then added to the curated database once the phase requirement is trustworthy.
+
+Commands:
+
+- `/zq learn` — show the current map's learning status and how many quests are stored for the current faction.
+- `/zq export` — open a copyable anonymous phase-learning report.
+
+The export contains zone IDs, faction, phase, quest IDs/names, completion state, observation counts, and the type of phase signal used. It intentionally does not include character names, realm names, or character GUIDs.
+
+### Community reporting
+
+A normal WoW addon does not have a general-purpose web uploader built into its Lua environment, so Zone Quest Guide does not silently transmit learned data to GitHub or another server.
+
+For now, community testers can run `/zq export`, copy the report, and send it with a GitHub issue or other contribution. A future optional companion uploader could automate that step outside the WoW addon if needed.
 
 ## Quest sections
 
@@ -122,6 +159,8 @@ For **Horn of the Traitor**, the guide marks the destination **UPPER LEVEL** at 
 - `/zq phase auto`
 - `/zq phase past`
 - `/zq phase present`
+- `/zq learn` — show phase-learning status
+- `/zq export` — open the anonymous phase-data export
 
 ## Install
 
@@ -139,22 +178,26 @@ There is no universal API that gives every Zidormi-style zone a simple human-rea
 
 Timeline-switch arrow guidance only activates when Zone Quest Guide knows both the active timeline and the required timeline for the selected quest. Unknown quests continue using normal WoW navigation rather than guessing.
 
+Phase learning only records a phase association when the current historical phase is already known from a reliable signal. It does not treat quest completion alone as timeline proof and does not automatically turn observations into official phase requirements.
+
 Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
 
-## In-game test plan for v0.2.2
+## In-game test plan for v0.2.3
 
-1. Reload the addon in Blasted Lands and select **Under Siege**.
-2. Verify the floating navigation HUD appears and no `NavigationHUD.lua` secret-number error is produced.
-3. Verify the HUD still shows a reasonable distance such as yards to the target when map data is available.
-4. Turn the character and verify the arrow continues rotating toward the destination.
-5. While Zidormi offers **"Show me the Blasted Lands before the invasion."**, verify the guide treats the current Blasted Lands version as **PRESENT**.
-6. Verify **Under Siege** remains a normal quest target in PRESENT rather than incorrectly asking for a timeline switch.
-7. Switch to PAST with Zidormi, then select a known present-only quest and verify **SWITCH TIMELINE** points back toward Zidormi.
-8. Verify Auto Accept, Auto Turn-in, daily sections, location hints, and flight-path target hold continue to behave normally.
+1. In Blasted Lands, talk to Zidormi while she offers **"Show me the Blasted Lands before the invasion."** and verify `/zq learn` reports **PRESENT (zidormi)**.
+2. With several present-phase quests visible or accepted, run `/zq export` and verify the export includes Blasted Lands map ID, **Horde**, **present**, and the observed quest IDs/names.
+3. Accept and turn in a quest while the phase is known, then verify the export records the corresponding `accepted` and `turnedIn` evidence.
+4. Switch Blasted Lands to PAST with Zidormi, let the guide refresh, and verify newly observed old-phase quests are stored under **past** rather than **present**.
+5. Log into another Horde character on the same account and verify its observations add to the same Horde learning data.
+6. Log into an Alliance character and verify its observations are stored under the Alliance faction bucket rather than mixing with Horde.
+7. Verify `/zq export` does not contain character names, realm names, or GUIDs.
+8. Continue verifying the v0.2.2 secret-number fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
 
 ## Roadmap
 
-- Expand phase requirements across the rest of the Blasted Lands Iron Horde quest chain.
+- Review exported phase-learning evidence and expand the curated Blasted Lands quest-phase map.
+- Add import/merge tooling for trusted community phase-data contributions.
+- Add an optional external companion uploader if automatic community reporting is desired.
 - Add additional Zidormi zones and phase-switch NPC locations as they are encountered in-game.
 - Expand supplemental quest-chain and prerequisite coverage.
 - Improve multi-zone route selection.
