@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.11  
+**Version:** 0.2.12  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -17,17 +17,15 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Keeps the navigation target stable while a flight path briefly crosses another zone.
 - Supports optional **Auto Accept** and **Auto Turn-in** quest automation.
 - Supports location hints such as **UPPER LEVEL** for confusing vertical quest locations.
-- Supports historical/time-phase zones controlled by NPCs such as Zidormi.
-- Recognizes both **Blasted Lands** and **Darkshore** as Zidormi-controlled historical zones.
-- Automatically infers a timeline when WoW exposes a currently active or available quest that the curated database already knows is phase-exclusive.
-- Shows the detected timeline on its own line directly below the current zone name in the main Zone Quest Guide window.
-- Warns the player to talk to the configured timeline-switch NPC before questing when a phased zone is known but the active timeline is still unknown.
-- Updates the timeline after the player selects Zidormi's switch option instead of waiting for a second Zidormi conversation.
-- Can redirect the navigation arrow to a timeline-switch NPC when the selected quest belongs to another historical version of the zone.
+- Recognizes known Retail Zidormi/Rhonormu historical timeline zones, including alternate Retail map IDs and live map/subzone names.
+- Shows the detected timeline on its own line directly below the current zone name.
+- Warns the player to talk to the configured timeline NPC before questing when a known phased zone's active timeline is still unknown.
+- Updates the timeline after the player selects the switch option instead of requiring a second NPC conversation.
+- Can infer a timeline when WoW exposes a curated phase-exclusive quest.
 - Learns phase/quest evidence locally while Horde and Alliance characters play in known historical phases.
 - Exports anonymous phase-learning data for community contributions.
 - Reminds players when useful phase data is ready to contribute and provides the ZoneQuestGuide Google Form URL.
-- Includes an optional Wago Analytics telemetry bridge for stronger anonymous phase evidence using Wago's documented shim integration and the configured Zone Quest Guide Wago project ID.
+- Includes an optional Wago Analytics bridge for stronger anonymous phase evidence using Wago's documented shim integration.
 
 ## Navigation HUD
 
@@ -43,35 +41,83 @@ The floating navigation HUD remains visible independently of the main quest list
 
 ### Retail secret-value compatibility
 
-Zone Quest Guide does not currently calculate a movement-speed ETA. On current Retail clients, Blizzard can return `GetUnitSpeed("player")` as a secret value. Comparing or doing arithmetic with that protected value from addon code can taint execution and produce a Lua error.
-
-Version 0.2.2 removed the movement-speed ETA calculation and keeps the safe navigation information: direction, target, status, and distance when available.
+Zone Quest Guide does not currently calculate a movement-speed ETA. On current Retail clients Blizzard can return `GetUnitSpeed("player")` as a secret value. Version 0.2.2 removed the movement-speed ETA calculation and keeps the safe navigation information: direction, target, status, and distance when available.
 
 ### Timeline-switch arrow
 
-For phase-aware quests, Zone Quest Guide can recognize that the selected quest belongs to another historical version of the current zone. When the current phase is known and a configured switch NPC exists, the normal navigation HUD temporarily changes to:
+For phase-aware quests, Zone Quest Guide can recognize that the selected quest belongs to another historical version of the current zone. When the current phase is known and a configured local switch NPC has usable coordinates, the navigation HUD can temporarily show:
 
 `SWITCH TIMELINE`
 
-and points to the timeline-switch NPC instead of an objective that is unavailable in the current phase.
+and point to the timeline NPC instead of an objective that is unavailable in the current phase.
 
-Initial Blasted Lands Horde coverage includes:
+The switcher registry intentionally avoids creating a same-map waypoint when the relevant NPC is somewhere else. For example, the current Quel'Thalas switch is performed by Zidormi at **Thalassian Pass**, so Eversong Woods/Ghostlands can show the timeline warning without pretending Zidormi is standing inside those maps.
 
-- **Attack of the Iron Horde** — requires the present/Iron Horde-incursion version.
-- **Under Siege** — requires the present/Iron Horde-incursion version.
-- **Zidormi** near the northern Blasted Lands border is the configured phase switch target.
+## Historical/time phases
 
-Darkshore also has a configured Zidormi switch target near **48.4, 25.0**. Version 0.2.11 recognizes the old/current Darkshore split, but does not yet classify every faction-control/warfront state inside the present-era version.
+Some outdoor zones can exist in older and newer versions. Zone Quest Guide treats these as timeline filters rather than mixing both versions together.
 
-After the player changes to the required timeline and the guide refreshes, navigation returns to the real quest target.
+Version 0.2.12 adds a central `TimelineZones.lua` registry for the known Retail world-state switches exposed through Zidormi or Rhonormu. The registry uses known UiMapIDs where available and also checks the live map/subzone name, because Retail can expose multiple map IDs for the same named zone.
+
+### Registered timeline locations
+
+- **Dustwallow Marsh / Theramore** — before Theramore's Fall vs. the ruined present.
+- **Blasted Lands** — before the Iron Horde invasion vs. the Iron Horde-incursion present.
+- **Peak of Serenity** — the pre-Legion monastery vs. the post-Legion state. Detection is scoped to the Peak of Serenity subzone rather than all of Kun-Lai Summit.
+- **Silithus** — before the Wound vs. the Wound-era present. **Rhonormu** is also recognized as a valid timeline NPC there.
+- **Darkshore** — before the War of the Thorns/Burning of Teldrassil vs. the current-era Darkshore state.
+- **Teldrassil / Darnassus** — share the Darkshore timeline state where WoW exposes those related maps.
+- **Tirisfal Glades** — before the Battle for Lordaeron vs. the later present state.
+- **Undercity** — can share the Tirisfal timeline state where appropriate.
+- **Arathi Highlands** — before the Battle for Stromgarde vs. the warfront-era state.
+- **Uldum** — Cataclysm-era Uldum vs. the N'Zoth-assault-era state.
+- **Vale of Eternal Blossoms** — before the N'Zoth assaults vs. the assault-era state.
+- **Eversong Woods / Ghostlands** — Burning Crusade-era Quel'Thalas vs. the current Midnight-era state, switched through Zidormi at Thalassian Pass in Eastern Plaguelands.
+
+The registry models the old/current Zidormi-style pair for these locations. It does **not** claim to identify every internal scenario, campaign, faction-control, or warfront phase that can exist inside a current-era zone.
+
+### Why Darkshore needed another fix
+
+Darkshore can be represented by more than one Retail UiMapID. Version 0.2.11 initially registered only the ordinary Darkshore map ID, so a character on another Darkshore map variant could see no Timeline line until speaking to Zidormi created session phase information.
+
+Version 0.2.12 registers known Darkshore aliases and also falls back to the live map name. The intended behavior is therefore:
+
+`Timeline: UNKNOWN - talk to Zidormi before questing.`
+
+as soon as the player is in a recognized Darkshore variant, before the first Zidormi conversation unless another reliable phase signal already exists.
+
+### Zidormi/Rhonormu detection
+
+On a recognized timeline NPC, Zone Quest Guide reads the offered gossip option as a phase clue.
+
+- A **return/back to the present** option means the character is currently in the older **PAST** state.
+- An option offering to show/revisit an earlier version means the character is currently in the **PRESENT** state before switching.
+
+Version 0.2.12 broadens the historical wording recognized on known timeline NPCs. Besides `before` and `past`, it can recognize wording containing phrases such as **show me**, **relive**, **during**, and **age of**. This is needed for timeline options whose exact text is not the Blasted Lands-style "before the invasion" wording.
+
+When the player selects the recognized switch option, Zone Quest Guide records the destination phase immediately and refreshes again after the world state has had a short moment to settle. The phase is keyed to the logical timeline zone rather than only one UiMapID, so it can survive WoW moving the character between alternate map representations of the same historical area.
+
+### Automatic quest-based detection
+
+A curated phase-exclusive quest can also identify the active timeline when WoW reports that quest as active or available. Initial Blasted Lands examples are:
+
+- **Attack of the Iron Horde** — PRESENT / Iron Horde.
+- **Under Siege** — PRESENT / Iron Horde.
+
+If contradictory curated evidence appears at the same time, Zone Quest Guide does not guess from that evidence. Manual and NPC-derived signals remain stronger.
+
+Manual overrides remain available as a fallback:
+
+- `/zq phase` — show the current phase mode and, when applicable, the quest used as automatic evidence.
+- `/zq phase auto` — clear the current-zone override.
+- `/zq phase past` — force past-phase supplemental data.
+- `/zq phase present` — force present-phase supplemental data.
 
 ## Phase learning
 
 Version 0.2.3 added an account-wide local learning database inside `ZoneQuestGuideDB`.
 
-When Zone Quest Guide has a reliable historical-phase signal for the current map, it records live quest evidence supplied by WoW. Reliable phase signals include Zidormi detection, a configured detector, a manual `/zq phase` override, and starting in v0.2.4 a curated phase-exclusive quest that WoW currently exposes as active or available on the map.
-
-The learner can record:
+When Zone Quest Guide has a reliable historical-phase signal for the current map, it records live quest evidence supplied by WoW. The learner can record:
 
 - quests WoW reports as available on the current map;
 - quests offered by an NPC;
@@ -81,136 +127,59 @@ The learner can record:
 - quests turned in while the phase is known;
 - whether a recorded quest has been completed on a character that observed it.
 
-Data is separated by **map**, **faction**, **quest ID**, and **phase**. Because `ZoneQuestGuideDB` is an account-wide SavedVariable, Horde and Alliance alts on the same WoW account can contribute to the same local dataset while still being kept in separate faction buckets.
+Data is separated by **map**, **faction**, **quest ID**, and **phase**. Because `ZoneQuestGuideDB` is account-wide, Horde and Alliance alts on the same WoW account can contribute to the same local dataset while still being kept in separate faction buckets.
 
-The learner deliberately does **not** infer a timeline from a completed quest alone. A character may have completed that quest in another historical version earlier, so completion is stored as supporting information rather than proof that the quest belongs to the phase currently being viewed.
-
-The learner also does not automatically promote observations into official `QuestPhaseRequirements`. A quest seen in one phase may still exist in another phase under different prerequisites. Learned observations are evidence that can be reviewed and then added to the curated database once the phase requirement is trustworthy.
+Accepted-only observations are useful context but are weak phase evidence because an accepted quest can remain in the quest log after a timeline switch. Completion alone is also not treated as proof of the current phase. Learned observations are evidence for review and are not automatically promoted into official `QuestPhaseRequirements`.
 
 Commands:
 
-- `/zq learn` — show the current map's learning status and how many quests are stored for the current faction.
+- `/zq learn` — show the current map's learning status and stored quest count for the current faction.
 - `/zq export` — open a copyable anonymous phase-learning report.
-- `/zq contribute` — open the contribution instructions and copyable Google Form URL.
+- `/zq contribute` — show contribution instructions and the Google Form URL.
 
-The export contains zone IDs, faction, phase, quest IDs/names, completion state, observation counts, and the type of phase signal used. It intentionally does not include character names, realm names, or character GUIDs.
+The export contains map IDs, faction, phase, quest IDs/names, completion state, observation counts, and phase-source information. It intentionally does not include character names, realm names, or character GUIDs.
 
-### Community reporting
+## Community reporting
 
-A normal WoW addon does not have a general-purpose web uploader built into its Lua environment, so the manual contribution route still requires the player to copy and submit the learned data themselves.
+A normal WoW addon cannot perform a general-purpose web upload from Lua, so the manual contribution path still requires the player to copy and submit the learned data.
 
-Once useful quest data has been learned in a known timeline, the addon can show **Help improve Zone Quest Guide** with three simple steps:
+Once useful data has been learned, the addon can show **Help improve Zone Quest Guide**:
 
 1. Run `/zq export` or click **Open Export**.
 2. Copy the anonymous phase report.
 3. Open the ZoneQuestGuide Google Form, paste the report, and submit it.
 
-The reminder is intentionally limited so it does not appear after every quest. It is shown at most once per map/faction/timeline during a login session, normally after a quest turn-in once phase data exists, or after several pickups have already created a useful observation set.
-
-Version 0.2.8 uses this Google Form as the manual contribution destination:
+Current form:
 
 `https://forms.gle/Gnqf8kN44kDZxMs86`
 
-The reminder does **not** upload anything by itself. The player still chooses whether to copy and submit the export.
+The reminder does not upload anything by itself.
 
 ### Wago Analytics
 
-Version 0.2.7 added an optional Wago Analytics telemetry bridge. It is designed to report only stronger anonymous phase evidence when the player has Wago Analytics available and data sharing is active.
-
-The bridge can report:
+Zone Quest Guide also has an optional Wago Analytics telemetry bridge for stronger anonymous phase evidence. It can report:
 
 - a quest WoW reports as available in the current phase;
 - a quest actually offered by an NPC;
 - an active quest shown by an NPC;
 - a quest turned in while the phase is known.
 
-Accepted-quest map scans are intentionally not sent to Wago because a quest can remain accepted after a player changes timelines. Wago metric keys are limited to map ID, faction, phase, quest ID, evidence type, and the reliable phase source. Character names, realms, guild names, GUIDs, and manual phase overrides are excluded.
+Accepted-only map scans are intentionally excluded from Wago telemetry. Metric keys are limited to map ID, faction, phase, quest ID, evidence type, and the reliable phase source. Character names, realms, guild names, GUIDs, and manual phase overrides are excluded.
 
-Version 0.2.9 configured the Zone Quest Guide Wago project ID `EGPeM3N1` through `X-Wago-ID`.
+The configured Wago project ID is `EGPeM3N1`. Version 0.2.10 bundles the official Wago Analytics shim, loads it through the TOC with `WagoAnalytics` as an optional dependency, includes LibStub, and registers the project during addon loading.
 
-Version 0.2.10 aligns the implementation with Wago's documented setup. Zone Quest Guide now bundles the official Wago Analytics shim, loads it through the TOC with `WagoAnalytics` as an optional dependency, includes LibStub so the shim can load independently, and registers the project during addon loading instead of waiting for a later gameplay event.
+`/zq wago` or `/zq telemetry` reports whether the project is configured, whether the shim registered, and whether the real `WagoAnalytics` addon is loaded on the current client. WoW Lua cannot directly verify the Wago App's Analytics-sharing preference.
 
-`/zq wago` or `/zq telemetry` reports whether project `EGPeM3N1` is configured, whether the shim registered, and whether the real `WagoAnalytics` addon is loaded on the current client. WoW Lua cannot directly verify the Wago App's Analytics sharing preference, so the status message treats that as an external app setting rather than claiming it is enabled or disabled.
-
-The Wago project has been created, but no Wago release has been published yet. Until the first release is actually published there, GitHub remains the only distribution platform listed as available.
-
-## Quest sections
-
-### ZONE QUESTS
-
-Normal one-time zone quests stay in the main progression section and remain the first automatic navigation priority.
-
-### DAILY QUESTS
-
-Repeatable daily quests are shown separately below normal zone quests. Dailies can still show **AVAILABLE**, **TURN IN**, or **IN PROGRESS**.
-
-## Historical/time phases
-
-Some zones can exist in older and newer versions. Zone Quest Guide treats these as filters rather than showing both versions together.
-
-### Automatic quest-based detection
-
-Version 0.2.4 can infer the current timeline from live quest data when a quest has already been curated as phase-exclusive. For example, **Under Siege** and **Attack of the Iron Horde** are known PRESENT/Iron Horde Blasted Lands quests. If WoW reports one of those quests as currently active or available on the Blasted Lands map, Zone Quest Guide can identify the timeline as PRESENT without requiring a fresh Zidormi conversation.
-
-If contradictory curated quest evidence ever appears at the same time, the addon does not guess from that evidence. Manual and Zidormi signals remain higher-priority sources.
-
-The main panel shows a dedicated line such as:
-
-`Timeline: PRESENT / Iron Horde (quest detected)`
-
-or:
-
-`Timeline: PAST / Before invasion (Zidormi)`
-
-If Zone Quest Guide knows the zone supports historical versions but cannot determine which one, v0.2.5 shows an explicit warning such as:
-
-`Timeline: UNKNOWN - talk to Zidormi before questing.`
-
-This warning is intended to keep phase-learning data clean and to prevent the guide from pretending it knows which historical version is active.
-
-### Darkshore
-
-Version 0.2.11 adds Darkshore (UiMapID 62) to the known historical-zone list. Darkshore can now show:
-
-- `PAST / Before War of the Thorns`
-- `PRESENT / After War of the Thorns`
-
-Until the timeline is known, the guide tells the player to talk to Zidormi before questing. Zidormi is configured near **48.4, 25.0**. Her normal option to show Darkshore before the battle is treated as evidence that the player is currently in the present-era version; after switching to the old version, the return-to-present option identifies the player as being in the past version.
-
-This first Darkshore implementation distinguishes the Zidormi old/current timeline. It does not yet try to model every Battle for Darkshore warfront ownership or campaign state that can exist inside the current-era zone.
-
-### Zidormi detection
-
-When the player talks to **Zidormi**, the addon examines her gossip option as a strong phase clue. On the English client:
-
-- If Zidormi offers **"Take me back to the present."**, the character is currently in the **PAST** version.
-- If she offers to show the zone **before** an invasion/event or otherwise travel to the past, the character is currently in the **PRESENT** version.
-
-Version 0.2.5 also watches which Zidormi timeline option the player actually selects. After that switch option is chosen, Zone Quest Guide updates its session timeline to the destination phase and refreshes again shortly afterward so the label, phase filtering, phase learning, and navigation can follow the new world state without requiring the player to reopen Zidormi.
-
-Manual per-zone overrides remain available when automatic identification is not reliable:
-
-- `/zq phase` — show the current phase mode and, when applicable, the quest used as automatic evidence.
-- `/zq phase auto` — clear the current-zone override.
-- `/zq phase past` — force past-phase supplemental data.
-- `/zq phase present` — force present-phase supplemental data.
+The Wago project exists, but no Wago release has been published yet. Until the first release is actually published there, GitHub remains the only distribution platform listed as available.
 
 ## Quest automation
 
-Quest automation is optional and defaults to OFF.
-
-Open `/zq options` or click **Options** in the Zone Quest Guide window:
+Quest automation is optional and defaults to OFF. Open `/zq options` or click **Options**:
 
 - **Auto accept quests** — selects and accepts available quests automatically.
 - **Auto turn in completed quests** — advances completed quests and claims the reward when no meaningful reward choice is present.
 
 Quests with multiple reward choices remain open for manual selection. Holding **Shift** while interacting with an NPC temporarily bypasses automation.
-
-## Location hints
-
-WoW's map is primarily 2D, so nearby pins can be misleading when one NPC is above or below another. Supplemental hints can identify locations such as **UPPER LEVEL**, **LOWER LEVEL**, **INSIDE CAVE**, or similar terrain notes.
-
-For **Horn of the Traitor**, the guide marks the destination **UPPER LEVEL** at Freewind Post.
 
 ## Minimap button
 
@@ -232,16 +201,16 @@ For **Horn of the Traitor**, the guide marks the destination **UPPER LEVEL** at 
 - `/zq options`
 - `/zq autoaccept`
 - `/zq autoturnin`
-- `/zq autocomplete` — alias for auto turn-in
+- `/zq autocomplete`
 - `/zq phase`
 - `/zq phase auto`
 - `/zq phase past`
 - `/zq phase present`
-- `/zq learn` — show phase-learning status
-- `/zq export` — open the anonymous phase-data export
-- `/zq contribute` — show contribution instructions and the Google Form URL
-- `/zq wago` — show Wago Analytics bridge status
-- `/zq telemetry` — alias for `/zq wago`
+- `/zq learn`
+- `/zq export`
+- `/zq contribute`
+- `/zq wago`
+- `/zq telemetry`
 
 ## Install
 
@@ -255,33 +224,33 @@ For **Horn of the Traitor**, the guide marks the destination **UPPER LEVEL** at 
 
 WoW's live addon APIs do not reliably expose every historical unaccepted side quest. `QuestData.lua` supplements missing quest and navigation information zone-by-zone.
 
-There is no universal API that gives every Zidormi-style zone a simple human-readable past/present identity. Quest-based timeline detection only works when the selected/live quest ID is already known to be phase-exclusive in the curated database. Zidormi, configured detectors, and manual overrides remain important fallbacks.
+There is no universal API that gives every historical world state a simple human-readable identifier. Zone Quest Guide's registry covers known Zidormi/Rhonormu old/current switches, while quest-based timeline detection only works when a live quest ID is already curated as phase-exclusive.
 
-Timeline-switch arrow guidance only activates when Zone Quest Guide knows both the active timeline and the required timeline for the selected quest. Unknown quests continue using normal WoW navigation rather than guessing.
+Some affected zones share a timeline switch NPC located in a different map. In those cases the addon can show the correct warning/phase label but intentionally avoids creating an incorrect same-map waypoint.
 
-Phase learning only records a phase association when the current historical phase is known from a reliable signal. It does not treat quest completion alone as timeline proof and does not automatically turn observations into official phase requirements.
+Timeline-switch arrow guidance only activates when Zone Quest Guide knows both the active timeline and required quest timeline and has a usable local switcher coordinate.
 
-Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
+Phase learning only records a phase association when the historical phase is known from a reliable signal. It does not automatically turn observations into official phase requirements.
 
-## In-game test plan for v0.2.11
+## In-game test plan for v0.2.12
 
-1. Enter or reload in Darkshore and verify the main panel now recognizes the zone as phased.
-2. Before speaking to Zidormi, verify the panel shows **Timeline: UNKNOWN - talk to Zidormi before questing.** unless a reliable timeline signal is already available.
-3. Speak to Zidormi near 48.4, 25.0 and verify the label becomes **PAST / Before War of the Thorns** or **PRESENT / After War of the Thorns** as appropriate.
-4. Select Zidormi's timeline switch option once and verify the label changes to the destination timeline without requiring a second conversation.
-5. Run `/zq learn` and verify Darkshore observations are stored under map 62 and the correct timeline after the phase is known.
-6. With Wago Analytics data sharing enabled, generate a strong Darkshore quest observation and check whether the Wago development dashboard begins receiving data.
-7. Run `/zq contribute` and verify the Google Form/manual export route still works.
-8. Continue verifying the Blasted Lands timeline logic, secret-number navigation fix, navigation distance, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
+1. `/reload` in Darkshore **before talking to Zidormi** and verify the Timeline warning is already visible on the map variant WoW gives the character.
+2. Talk to Zidormi and verify the label becomes the correct **PAST** or **PRESENT** Darkshore state.
+3. Select the timeline switch once and verify the label follows the destination without requiring a second conversation. WoW may fade the screen while it applies the world phase.
+4. Run `/zq learn` after the switch and verify observations are recorded under the displayed timeline.
+5. Test at least one additional registered zone such as Arathi Highlands, Uldum, Silithus, Tirisfal Glades, Dustwallow Marsh, or Vale of Eternal Blossoms and verify the pre-conversation warning and gossip detection.
+6. In Silithus, verify Rhonormu is recognized if that NPC is the available timeline switcher.
+7. If testing Eversong Woods/Ghostlands, verify the warning refers to Zidormi at Thalassian Pass and that the historical **during/age of** wording is recognized without creating a fake local waypoint.
+8. With Wago Analytics data sharing enabled, generate a strong phase quest observation and check the development dashboard for the first metric.
+9. Verify `/zq contribute` and the Google Form/manual export route still work.
 
 ## Roadmap
 
+- Validate the v0.2.12 timeline registry across Retail's Zidormi/Rhonormu locations and correct any additional live map aliases encountered in game.
 - Validate Wago Analytics data delivery, then publish the first Zone Quest Guide Wago release when the telemetry path is ready.
 - Automate review/import of trusted Google Form phase-data submissions.
-- Expand the curated phase-exclusive quest list so automatic timeline detection works across more Blasted Lands, Darkshore, and other historical-zone quests.
-- Review exported phase-learning evidence and expand the curated quest-phase map.
-- Add import/merge tooling for trusted community phase-data contributions.
-- Add additional Zidormi zones and phase-switch NPC locations as they are encountered in-game.
+- Expand curated phase-exclusive quest mappings from reviewed local/community evidence.
+- Add import/merge tooling for trusted community contributions.
 - Expand supplemental quest-chain and prerequisite coverage.
 - Improve multi-zone route selection.
 - Add weekly/other recurring quest sections if useful.
