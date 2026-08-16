@@ -1,10 +1,10 @@
 local ADDON_NAME, ZQG = ...
 
--- Optional supplemental quest database.
+-- Supplemental quest database.
 --
 -- The live WoW APIs can expose accepted quests on the current map and many
--- available quest-line starters. They do not reliably expose every historical
--- side quest in every zone. Records added here fill those gaps.
+-- available quest-line starters, but they do not reliably expose every older
+-- unaccepted side/story quest. Records here fill those gaps.
 --
 -- Format:
 -- ZQG.StaticQuests[uiMapID] = {
@@ -14,7 +14,65 @@ local ADDON_NAME, ZQG = ...
 --     x = 0.5123, -- normalized map coordinate (0.0 to 1.0)
 --     y = 0.4388,
 --     prereqs = { 12344 }, -- optional; all must be completed
+--     faction = "Horde",   -- optional: "Horde" or "Alliance"
 --   },
 -- }
 
 ZQG.StaticQuests = ZQG.StaticQuests or {}
+
+-- Thousand Needles (UiMapID 64)
+-- Initial coverage for the Splithoof Heights -> Speedbarge chain that exposed
+-- the first missing-quest report during v0.1.0 testing.
+ZQG.StaticQuests[64] = {
+    -- Horde
+    {
+        id = 25814,
+        name = "Go Blow that Horn",
+        x = 0.8861,
+        y = 0.5492,
+        prereqs = { 25797, 25799 },
+        faction = "Horde",
+    },
+    {
+        id = 25826,
+        name = "Deliver the Goods",
+        x = 0.8858,
+        y = 0.5494,
+        prereqs = { 25814 },
+        faction = "Horde",
+    },
+    {
+        id = 25836,
+        name = "Free Freewind Post",
+        x = 0.7594,
+        y = 0.7469,
+        prereqs = { 25826 },
+        faction = "Horde",
+    },
+
+    -- Alliance
+    {
+        id = 25813,
+        name = "Go Blow that Horn",
+        x = 0.9135,
+        y = 0.5770,
+        prereqs = { 25796, 25798 },
+        faction = "Alliance",
+    },
+    {
+        id = 25825,
+        name = "Deliver the Goods",
+        x = 0.9136,
+        y = 0.5777,
+        prereqs = { 25813 },
+        faction = "Alliance",
+    },
+    {
+        id = 25835,
+        name = "Free Freewind Post",
+        x = 0.7597,
+        y = 0.7465,
+        prereqs = { 25825 },
+        faction = "Alliance",
+    },
+}
