@@ -36,6 +36,11 @@ local function ZoneHasPhaseData(mapID)
         return false
     end
 
+    local DB = GetDB()
+    if DB.phaseOverrides[mapID] then
+        return true
+    end
+
     if ZQG.TimePhaseZones[mapID] then
         return true
     end
@@ -177,8 +182,6 @@ local function UpdateZonePhaseBadge()
         if region.GetObjectType and region:GetObjectType() == "FontString" then
             local text = region:GetText()
             if text and text:find("unfinished quests", 1, true) then
-                -- Core rewrites this line on refresh, so only append when the
-                -- badge is not already present.
                 if not text:find("[PHASE:", 1, true) then
                     region:SetText(text .. "  |cff66ccff[PHASE: " .. display .. "]|r")
                 end
@@ -203,16 +206,32 @@ local function RefreshForPhaseChange()
     C_Timer.After(0.05, UpdateZonePhaseBadge)
 end
 
-local events = CreateFrame("Frame")
-events:RegisterEvent("PLAYER_ENTERING_WORLD")
-events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-events:RegisterEvent("UNIT_PHASE")
-events:SetScript("OnEvent", function(_, event, unit)
-    if event == "UNIT_PHASE" and unit and unit ~= "player" then
+local phaseRefreshScheduled = false
+local function SchedulePhaseRefresh(delay)
+    if phaseRefreshScheduled then
         return
     end
 
-    C_Timer.After(0.10, RefreshForPhaseChange)
+    phaseRefreshScheduled = true
+    C_Timer.After(delay or 0.15, function()
+        phaseRefreshScheduled = false
+        RefreshForPhaseChange()
+    end)
+end
+
+local events = CreateFrame("Frame")
+events:RegisterEvent("PLAYER_ENTERING_WORLD")
+events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+events:RegisterEvent("ZONE_CHANGED")
+events:RegisterEvent("QUEST_LOG_UPDATE")
+events:RegisterEvent("GOSSIP_CLOSED")
+events:RegisterEvent("UNIT_PHASE")
+events:SetScript("OnEvent", function()
+    -- UNIT_PHASE does not provide a universal historical-phase identifier, and
+    -- some phase switches are accompanied by quest/gossip/zone changes instead.
+    -- Treat these events as refresh hints and let the configured detector or
+    -- per-zone manual override decide which supplemental records are valid.
+    SchedulePhaseRefresh(0.15)
 end)
 
 -- Keep the phase badge in sync with normal manual/minimap refreshes.
