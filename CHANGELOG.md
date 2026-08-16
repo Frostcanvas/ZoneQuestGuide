@@ -1,5 +1,21 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.6 - August 16, 2026 - Available on GitHub**
+
+* **Added** a contribution reminder for phase-learning data. After Zone Quest Guide has collected useful quest observations in a known historical timeline, it can now show a small **Help improve Zone Quest Guide** window reminding the player to run `/zq export`, copy the anonymous phase report, and submit it through the listed contribution page.
+
+* **Added** `/zq contribute` so the contribution instructions can be reopened at any time without waiting for the automatic reminder.
+
+* **Added** a copyable contribution URL field and **Open Export** button. The initial contribution page points to the ZoneQuestGuide GitHub issue form/page, and the URL is kept in one configurable addon value so it can be changed later to a Google Form/Drive-backed submission page or another community endpoint.
+
+* **Improved** reminder behavior so it does not pop up after every quest. The reminder is limited to once per zone/faction/timeline during a login session, appears after a turn-in once useful phase data exists, and can also appear after several quest pickups have already built a useful observation set.
+
+* **Changed** community contribution prompting to remain manual and privacy-conscious. The addon still does not upload anything automatically; the player chooses whether to export and submit the already-anonymous phase-learning report.
+
+*In-game testing is still required to confirm the contribution window appears after useful phased quest data is recorded, does not repeatedly interrupt the player, `/zq contribute` reopens it, **Open Export** opens the phase export correctly, and the copyable URL field behaves normally in the WoW UI.*
+
+---
+
 **VERSION 0.2.5 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** timeline switching that could remain on the previous Blasted Lands phase until the player talked to Zidormi again. The earlier implementation primarily waited for WoW to report a phase-transition event after the Zidormi interaction; the player's in-game screenshots and recordings showed that this was not reliably updating the addon immediately after the switch.
@@ -106,7 +122,7 @@
 
   Previously, the phase framework could refresh when WoW reported phase-related changes, but it still needed a zone-specific detector or a manual `/zq phase` override to know what those phases actually meant. Zidormi's own gossip option provides a much more useful player-facing signal because the destination she offers is the opposite of the version the character is currently in.
 
-* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates the session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
+* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates the session's detected phase to that destination. Merely closing the gossip window does not change the detected phase.
 
 * **Added** a **(Zidormi)** source label to the phase badge so the player can tell when the current **PAST** or **PRESENT** phase was identified from a Zidormi conversation rather than a manual override.
 
