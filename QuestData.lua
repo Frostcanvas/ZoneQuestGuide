@@ -167,3 +167,22 @@ ZQG.PhaseSwitchers[62] = {
     x = 0.484,
     y = 0.250,
 }
+
+-- Midnight Quel'Thalas live-map confirmation. On the current Retail client,
+-- C_Map.GetBestMapForUnit("player") returned UiMapID 2537 / "Quel'Thalas" in
+-- the rebuilt Midnight world. The old Burning Crusade Ghostlands returned
+-- UiMapID 95. TimelineZones.lua already classifies 95 as the old/Past map; this
+-- explicit current-world detector makes 2537 a reliable PRESENT signal too.
+local midnightQuelThalasPhaseConfig = {
+    phases = {
+        past = "PAST / Burning Crusade Quel'Thalas",
+        present = "PRESENT / Midnight Quel'Thalas",
+    },
+    detect = function()
+        return "present"
+    end,
+}
+ZQG.TimePhaseZones[2537] = midnightQuelThalasPhaseConfig
+ZQG.PhaseSwitchers[2537] = {
+    name = "Zidormi at Thalassian Pass",
+}
