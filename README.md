@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.1  
+**Version:** 0.2.2  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -13,7 +13,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Prioritizes normal zone quests ahead of dailies, then **AVAILABLE**, **TURN IN**, and **IN PROGRESS** within each section.
 - Uses Blizzard super-tracking for accepted quests and temporary user waypoints for available quest starters.
 - Replaces old available-quest waypoints when the selected quest changes.
-- Adds a floating navigation HUD with a smoothly rotating drawn arrow, quest name, status, distance when available, and ETA while moving.
+- Adds a floating navigation HUD with a smoothly rotating drawn arrow, quest name, status, and distance when available.
 - Keeps the navigation target stable while a flight path briefly crosses another zone.
 - Supports optional **Auto Accept** and **Auto Turn-in** quest automation.
 - Supports location hints such as **UPPER LEVEL** for confusing vertical quest locations.
@@ -27,11 +27,16 @@ The floating navigation HUD remains visible independently of the main quest list
 - Smoothly rotates toward the current destination.
 - Shows the selected target and status.
 - Shows distance in yards when WoW exposes usable world-position data.
-- Shows an ETA while moving when a usable movement speed is available.
 - Includes supplemental location hints when present.
 - **Shift-drag** moves the HUD and saves its position.
 - `/zq arrow` toggles it.
 - `/zq arrow reset` restores its default position.
+
+### Retail secret-value compatibility
+
+Zone Quest Guide does not currently calculate a movement-speed ETA. On current Retail clients, Blizzard can return `GetUnitSpeed("player")` as a secret value. Comparing or doing arithmetic with that protected value from addon code can taint execution and produce a Lua error.
+
+Version 0.2.2 removes the movement-speed ETA calculation and keeps the safe navigation information: direction, target, status, and distance when available.
 
 ### Timeline-switch arrow
 
@@ -134,18 +139,18 @@ There is no universal API that gives every Zidormi-style zone a simple human-rea
 
 Timeline-switch arrow guidance only activates when Zone Quest Guide knows both the active timeline and the required timeline for the selected quest. Unknown quests continue using normal WoW navigation rather than guessing.
 
-Distance and ETA depend on map/world-position and movement information supplied by WoW, so some targets may show tracking information without a numeric distance.
+Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
 
-## In-game test plan for v0.2.1
+## In-game test plan for v0.2.2
 
-1. In Blasted Lands, talk to Zidormi so Zone Quest Guide can identify the current phase.
-2. While in **PAST**, select **Under Siege** or **Attack of the Iron Horde**.
-3. Verify the floating HUD changes to **SWITCH TIMELINE** and points toward Zidormi rather than the unavailable quest objective.
-4. Verify the target text tells you to switch to **PRESENT**.
-5. Use Zidormi to return to the present/Iron Horde version.
-6. Verify Zone Quest Guide refreshes and the arrow returns to the actual quest target.
-7. Verify normal non-phase quests continue using the standard navigation arrow.
-8. Verify the flight-path target hold, distance/ETA, Auto Accept, Auto Turn-in, daily sections, and location hints continue to behave normally.
+1. Reload the addon in Blasted Lands and select **Under Siege**.
+2. Verify the floating navigation HUD appears and no `NavigationHUD.lua` secret-number error is produced.
+3. Verify the HUD still shows a reasonable distance such as yards to the target when map data is available.
+4. Turn the character and verify the arrow continues rotating toward the destination.
+5. While Zidormi offers **"Show me the Blasted Lands before the invasion."**, verify the guide treats the current Blasted Lands version as **PRESENT**.
+6. Verify **Under Siege** remains a normal quest target in PRESENT rather than incorrectly asking for a timeline switch.
+7. Switch to PAST with Zidormi, then select a known present-only quest and verify **SWITCH TIMELINE** points back toward Zidormi.
+8. Verify Auto Accept, Auto Turn-in, daily sections, location hints, and flight-path target hold continue to behave normally.
 
 ## Roadmap
 
