@@ -1,5 +1,21 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.4 - August 16, 2026 - Available on GitHub**
+
+* **Added** automatic timeline detection from curated phase-exclusive quests. When WoW reports a known phase-specific quest as active on the current map or as an available quest-line starter, Zone Quest Guide can use that live quest evidence to identify the historical version without requiring a new Zidormi conversation every session.
+
+* **Improved** Blasted Lands detection for the currently mapped Iron Horde quests. **Under Siege** and **Attack of the Iron Horde** are known PRESENT/Iron Horde quests, so either quest can now establish the Blasted Lands timeline as PRESENT when WoW exposes it on the current map.
+
+* **Added** a dedicated **Timeline** line directly below the current zone name in the main Zone Quest Guide window. Supported zones can now show player-facing text such as **PRESENT / Iron Horde (quest detected)**, **PAST / Before invasion (Zidormi)**, or **UNKNOWN (auto)** instead of hiding the phase state inside the zone subtitle.
+
+* **Improved** phase learning so a curated quest-based detector can provide the reliable phase signal needed to record other live quest evidence. This lets the account-wide Horde/Alliance learning database continue gathering useful data even when the player has not spoken to Zidormi during the current login session.
+
+* **Changed** quest-based timeline inference to stay conservative. Manual overrides and Zidormi remain stronger signals, and if curated live quest evidence points to conflicting phases at the same time, Zone Quest Guide does not guess from that quest evidence.
+
+*In-game testing is still required for the new automatic quest-based detector and Timeline line. In PRESENT Blasted Lands, reload with **Under Siege** or **Attack of the Iron Horde** active without first talking to Zidormi and verify the panel reports **PRESENT / Iron Horde (quest detected)**, `/zq phase` identifies the evidence quest, phase learning records under PRESENT, and the existing navigation UI remains positioned correctly.*
+
+---
+
 **VERSION 0.2.3 - August 16, 2026 - Available on GitHub**
 
 * **Added** account-wide local phase learning. When Zone Quest Guide already knows the current historical version of a map from Zidormi, a configured detector, or a manual phase override, it now records live WoW quest evidence for that map and phase.
@@ -38,7 +54,7 @@
 
 * **Added** timeline-switch navigation guidance. When Zone Quest Guide knows the selected quest belongs to a different historical version of the current zone, the existing floating navigation HUD can now switch from the quest objective to the zone's timeline-switch NPC and display **SWITCH TIMELINE** instead of directing the player toward an unavailable objective.
 
-* **Added** initial Blasted Lands Horde phase requirements for **Attack of the Iron Horde** and **Under Siege**. These quests are marked as requiring the present/Iron Horde-incursion version of Blasted Lands. If Zidormi detection says the character is in the past version, the navigation HUD points to Zidormi and tells the player to switch to **PRESENT**.
+* **Added** initial Blasted Lands Horde phase requirements for **Attack of the Iron Horde** and **Under Siege**. These quests are marked as requiring the present/Iron-Horde-incursion version of Blasted Lands. If Zidormi detection says the character is in the past version, the navigation HUD points to Zidormi and tells the player to switch to **PRESENT**.
 
 * **Added** Blasted Lands Zidormi navigation data at the northern border so the timeline warning can be an actual directional arrow rather than only a text message.
 
