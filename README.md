@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.21  
+**Version:** 0.2.22  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone, points the player toward the next useful target, and learns anonymous map/quest and timeline evidence while the player quests.
@@ -14,6 +14,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Uses Blizzard super-tracking for accepted quests and temporary user waypoints for available quest starters.
 - Adds a floating navigation HUD with a rotating arrow, target name, status, and distance when available.
 - Supports optional Auto Accept and Auto Turn-in.
+- Supports supplemental quest prerequisites, later-progression blockers, and mutually exclusive quest routes.
 - Recognizes known Zidormi/Rhonormu historical timeline zones.
 - Learns phase/quest evidence locally when a historical phase is known.
 - Learns **map ID + map name + quest associations** even when no historical phase is known.
@@ -52,6 +53,20 @@ Current exports use tab-separated schema version 2:
 
 Tabs avoid WoW interpreting normal pipe-delimited field boundaries as text-formatting escape sequences. Exports intentionally omit character names, realm names, GUIDs, guild names, and account identifiers.
 
+## Supplemental quest availability
+
+WoW does not expose every older unaccepted quest through the live map APIs, so Zone Quest Guide can supplement missing quests in `QuestData.lua`. Version 0.2.22 expands those records with three availability rules:
+
+```lua
+prereqs = { 11111 }        -- every listed quest must be completed first
+blockedBy = { 22222 }       -- hide this quest if any listed quest was completed
+exclusiveWith = { 33333 }   -- hide if any listed quest is active or completed
+```
+
+`prereqs` models the normal quest-chain order. `blockedBy` is intended for breadcrumbs or older quests that become permanently unavailable after later progression. `exclusiveWith` is intended for route choices where accepting another quest commits the character to the other path; if that other quest is merely abandoned before completion, the supplemental quest can become eligible again on the next refresh.
+
+These rules are applied to supplemental database records. Live quests supplied directly by Blizzard's APIs are still trusted as currently obtainable/active and are not hidden by supplemental-only rules. No guessed blocker/exclusive relationships are added automatically; quest IDs should be added only when the relationship is known or observed.
+
 ## Historical/time phases
 
 Known timeline locations currently include Dustwallow Marsh/Theramore, Blasted Lands, Peak of Serenity, Silithus, Darkshore, Teldrassil/Darnassus where tied to Darkshore, Tirisfal Glades/Undercity, Arathi Highlands, Uldum, Vale of Eternal Blossoms, and Quel'Thalas/Eversong/Ghostlands/Silvermoon.
@@ -70,6 +85,12 @@ Zone Quest Guide treats `2537` as **PRESENT / Midnight Quel'Thalas** and `95` as
 ### Live-confirmed Blasted Lands behavior
 
 Retail testing confirmed both **PRESENT / Iron Horde** and **PAST / Before invasion** can return `17 / Blasted Lands`. Map ID alone therefore cannot classify the Blasted Lands timeline; Zidormi or reliable phase-exclusive quest evidence is still required.
+
+### Live-confirmed Silithus behavior
+
+Retail testing confirmed both **PAST / Before the Wound** and **PRESENT / The Wound** return `81 / Silithus`. Silithus therefore cannot be classified from the best-map ID alone. In the recorded switch, Zidormi's **return to the present** wording correctly identified the old state, and after switching her **before the Wound** option correctly identified the present state. The existing same-map Zidormi detection followed the switch in-game.
+
+Related Silithus map IDs `1321` and `2354` remain registered as alternate contexts but are not assumed to represent a specific timeline until their live role is observed.
 
 ### Live-confirmed Tirisfal Glades maps
 
@@ -195,7 +216,7 @@ Quests with meaningful reward choices remain open for manual selection. Holding 
 
 ## GitHub ZIP packages
 
-GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.21.zip`.
+GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.22.zip`.
 
 ## Install
 
@@ -209,22 +230,26 @@ GitHub's built-in **Code -> Download ZIP** is a source archive and will still us
 
 WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Map/quest learning records evidence, not automatic proof that a quest belongs exclusively to one map or timeline. Wago counters are aggregated evidence and do not replace review of local/manual exports.
 
-## In-game/test plan for v0.2.21
+Supplemental `blockedBy` and `exclusiveWith` rules are curated relationships, not relationships inferred automatically from completion history. Incorrect quest IDs could hide a valid supplemental quest, so they should be added only from reliable evidence.
 
-1. Update to v0.2.21 and `/reload` in Uldum.
-2. In the N'Zoth/current state, run `/zq check` **before** talking to Zidormi. Map `1527` should report **PRESENT / N'Zoth assaults (detected)**.
-3. Switch to Cataclysm Uldum and run `/zq check` **before** reopening Zidormi. Map `249` should report **PAST / Cataclysm Uldum (detected)** instead of briefly showing PRESENT.
-4. Return to the present and confirm map `1527` flips back to PRESENT without retaining stale session state.
-5. Continue the v0.2.20 Tirisfal check: `2070` should be PRESENT and `18` should be PAST before talking to Zidormi.
-6. Continue verifying Arathi's three-state handler: `2372` should show PRESENT, while map `14` should switch between FOURTH WAR and PAST based on Zidormi's destination set/selection.
-7. With WagoAnalytics loaded, continue generating strong quest evidence and confirm the session counters increase; then separately check the Wago development dashboard for the new `mapquest_m...` and `map_quest_evidence_total` counters.
-8. Continue checking `/zq mapexport` and `/zq export` for intact tab-separated headers and quest names.
+## In-game/test plan for v0.2.22
+
+1. Update to v0.2.22 and `/reload`.
+2. Confirm existing supplemental quests with `prereqs` still stay hidden until every prerequisite is completed and appear when their prerequisites are satisfied.
+3. When a real breadcrumb/later-progression relationship is identified, add its quest IDs with `blockedBy` and confirm the supplemental quest disappears once the blocking quest is completed.
+4. When a real mutually exclusive route is identified, add its IDs with `exclusiveWith` and confirm the supplemental quest disappears while the alternate quest is active and remains hidden after that alternate quest is completed. If the alternate can be abandoned before completion, confirm the supplemental quest can reappear after refresh.
+5. Confirm live Blizzard-provided available/accepted quests are unaffected by supplemental-only blocker rules.
+6. Continue the v0.2.21 Uldum check: `1527` should report PRESENT and `249` PAST before talking to Zidormi.
+7. Continue the v0.2.20 Tirisfal check: `2070` should be PRESENT and `18` should be PAST before talking to Zidormi.
+8. Continue verifying Arathi's three-state handler and separately check the Wago development dashboard for the new map/quest counters.
+9. Continue checking `/zq mapexport` and `/zq export` for intact tab-separated headers and quest names.
 
 ## Roadmap
 
 - Use collected map/quest associations to discover more Retail map aliases automatically.
-- Validate remaining Zidormi/Rhonormu timeline zones in-game, especially Silithus and Darkshore.
-- Identify the live role of alternate timeline-related map IDs such as Tirisfal `1247` and Uldum `1330`/`1571`.
+- Validate remaining Zidormi/Rhonormu timeline zones in-game, especially Darkshore, Dustwallow Marsh, Vale of Eternal Blossoms, and Peak of Serenity.
+- Identify the live role of alternate timeline-related map IDs such as Tirisfal `1247`, Uldum `1330`/`1571`, and Silithus `1321`/`2354`.
+- Add curated `blockedBy` and `exclusiveWith` relationships as real breadcrumb and mutually exclusive quest cases are identified.
 - Review Wago map/quest telemetry volume/cardinality before the first public Wago release.
 - Automate review/import of trusted Google Form submissions.
 - Expand curated phase-exclusive quest mappings and supplemental quest-chain coverage.
