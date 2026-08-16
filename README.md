@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.8  
+**Version:** 0.2.9  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -26,7 +26,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Learns phase/quest evidence locally while Horde and Alliance characters play in known historical phases.
 - Exports anonymous phase-learning data for community contributions.
 - Reminds players when useful phase data is ready to contribute and provides the ZoneQuestGuide Google Form URL.
-- Includes an optional Wago Analytics telemetry bridge for stronger anonymous phase evidence once a Wago project ID is assigned.
+- Includes an optional Wago Analytics telemetry bridge for stronger anonymous phase evidence using the configured Zone Quest Guide Wago project ID.
 
 ## Navigation HUD
 
@@ -123,7 +123,9 @@ The bridge can report:
 
 Accepted-quest map scans are intentionally not sent to Wago because a quest can remain accepted after a player changes timelines. Wago metric keys are limited to map ID, faction, phase, quest ID, evidence type, and the reliable phase source. Character names, realms, guild names, GUIDs, and manual phase overrides are excluded.
 
-The Wago bridge is prepared but is not active yet because Zone Quest Guide has not yet been assigned an `X-Wago-ID`. `/zq wago` or `/zq telemetry` shows the current bridge status. Zone Quest Guide continues working normally when WagoAnalytics is unavailable.
+Version 0.2.9 configures the Zone Quest Guide Wago project ID `EGPeM3N1` through `X-Wago-ID`. The Wago project now exists, but Wago Analytics still has to be activated for that project and the Wago App must have Analytics data sharing enabled before telemetry can actually be verified. `/zq wago` or `/zq telemetry` shows the current bridge status. Zone Quest Guide continues working normally when WagoAnalytics is unavailable.
+
+The Wago project has been created, but no Wago release has been published yet. Until the first release is actually published there, GitHub remains the only distribution platform listed as available.
 
 ## Quest sections
 
@@ -243,21 +245,20 @@ Phase learning only records a phase association when the current historical phas
 
 Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
 
-## In-game test plan for v0.2.8
+## In-game test plan for v0.2.9
 
 1. Enter or reload in Blasted Lands and verify the current timeline warning/detection still behaves correctly.
 2. Confirm the active timeline with Zidormi or a known phase-exclusive quest and continue questing normally.
-3. Run `/zq contribute` and verify the contribution window shows `https://forms.gle/Gnqf8kN44kDZxMs86` under **Google Form URL**.
-4. Click **Select URL** and verify the full form URL is highlighted for copying.
-5. Click **Open Export** and verify the normal phase export opens and remains copyable.
-6. Paste a test export into the Google Form and confirm the form accepts the submission.
-7. Turn in another phased quest and verify the automatic contribution reminder does not repeatedly interrupt the player within the same map/faction/timeline session.
-8. Run `/zq wago`. Until a Wago project ID is added, verify it reports that telemetry is prepared but not active yet.
-9. Continue verifying Zidormi switch synchronization, phase learning under the correct timeline, the secret-number navigation fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
+3. Run `/zq contribute` and verify the contribution window still shows the Google Form URL and the export remains copyable.
+4. On the Wago project, activate Analytics. In the Wago App, enable Analytics data sharing and link the developer account/development mode as appropriate for testing.
+5. Reload WoW and run `/zq wago`. Verify it reports the configured Wago bridge as active when WagoAnalytics is available.
+6. While the timeline is known from Zidormi or curated detection, trigger stronger evidence such as viewing an offered quest, seeing an available quest line, interacting with an active quest at an NPC, or turning in a quest.
+7. Verify the Wago Analytics dashboard receives development/test measurements without character names, realm names, guild names, GUIDs, or manual phase overrides.
+8. Continue verifying Zidormi switch synchronization, phase learning under the correct timeline, the secret-number navigation fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
 
 ## Roadmap
 
-- Create/publish the Wago project, enable Analytics, add the assigned `X-Wago-ID`, and test community telemetry in game.
+- Activate and validate Wago Analytics, then publish the first Zone Quest Guide Wago release when the telemetry path is ready.
 - Automate review/import of trusted Google Form phase-data submissions.
 - Expand the curated phase-exclusive quest list so automatic timeline detection works across more Blasted Lands quests and other historical zones.
 - Review exported phase-learning evidence and expand the curated quest-phase map.
