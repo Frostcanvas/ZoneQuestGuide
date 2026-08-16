@@ -1,139 +1,119 @@
 # Zone Quest Guide
 
-**Version:** 0.2.18  
+**Version:** 0.2.19  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
-Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
+Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone, points the player toward the next useful target, and learns anonymous map/quest and timeline evidence while the player quests.
 
 ## Current features
 
 - Detects the current Retail WoW zone/map and refreshes automatically.
 - Shows **AVAILABLE**, **TURN IN**, and **IN PROGRESS** quest states.
 - Keeps normal **ZONE QUESTS** separate from repeatable **DAILY QUESTS**.
-- Prioritizes normal zone quests ahead of dailies, then **AVAILABLE**, **TURN IN**, and **IN PROGRESS**.
+- Prioritizes normal zone quests ahead of dailies, then AVAILABLE, TURN IN, and IN PROGRESS.
 - Uses Blizzard super-tracking for accepted quests and temporary user waypoints for available quest starters.
 - Adds a floating navigation HUD with a rotating arrow, target name, status, and distance when available.
-- Supports optional **Auto Accept** and **Auto Turn-in** quest automation.
-- Supports location hints such as **UPPER LEVEL** for confusing vertical quest locations.
-- Recognizes known Retail Zidormi/Rhonormu historical timeline zones.
-- Learns phase/quest evidence locally when the current historical phase is known.
-- Learns **map ID + map name + quest associations even when no historical phase is known**.
-- Exports anonymous learning data for community review using a WoW-safe tab-separated format.
-- Provides a manual Google Form contribution path and an optional Wago Analytics bridge for stronger anonymous phase and map/quest evidence.
-- Builds a clean GitHub package named **ZoneQuestGuide.zip** for development downloads and versioned release ZIPs with an internal **ZoneQuestGuide** addon folder.
-- Includes stable `/zq phase`, `/zq maps`, `/zq mapid`, and `/zq check` diagnostics loaded after the older slash-command wrappers.
+- Supports optional Auto Accept and Auto Turn-in.
+- Recognizes known Zidormi/Rhonormu historical timeline zones.
+- Learns phase/quest evidence locally when a historical phase is known.
+- Learns **map ID + map name + quest associations** even when no historical phase is known.
+- Exports anonymous learning data with WoW-safe tab-separated fields.
+- Can forward stronger anonymous phase and map/quest evidence through Wago Analytics when the player has Wago Analytics sharing enabled.
+- Builds a clean GitHub package named **ZoneQuestGuide.zip** through GitHub Actions.
+- Includes stable `/zq phase`, `/zq maps`, `/zq mapid`, and `/zq check` diagnostics.
 
 ## Map and quest learning
 
-Version 0.2.14 added a separate account-wide map/quest learning store in `ZoneQuestGuideDB.mapQuestLearning`.
+Zone Quest Guide keeps an account-wide `ZoneQuestGuideDB.mapQuestLearning` store. When WoW exposes a quest through the current map, an available quest line, NPC gossip, a quest-detail screen, quest acceptance, or quest turn-in, the addon can record:
 
-Whenever WoW exposes a quest through the current map, an available quest line, an NPC gossip list, a quest-detail window, quest acceptance, or quest turn-in, Zone Quest Guide can record:
-
-- the current `UiMapID`;
-- the map name returned by WoW;
+- live `UiMapID` and map name;
 - faction;
 - quest ID and quest name;
 - whether the quest was seen as available, offered, accepted, active, or turned in;
 - supporting completion state.
 
-This map collector does **not** require Zidormi or any known timeline. That makes it useful for discovering live Retail map aliases and replacement maps such as the new Midnight Quel'Thalas map.
+The map collector does not require Zidormi or a known timeline. This is useful for discovering live Retail replacement/alias maps such as Midnight Quel'Thalas.
 
-Version 0.2.17 also forwards stronger map/quest observations to Wago Analytics when the player has the WagoAnalytics addon and Wago App Analytics sharing enabled. The automatic Wago map/quest path reports only **available**, **offered**, **active**, and **turned-in** evidence; accepted-only and generic seen evidence stay local because accepted quests can persist while the player moves between zones or timelines.
-
-Map scans are skipped while the player is on a taxi flight path so transient parent/flyover maps are not learned or transmitted as quest locations merely because the flight crossed them.
+Map scans are skipped while the player is on a taxi flight path so transient parent/flyover maps are not learned simply because the flight crossed them.
 
 Commands:
 
-- `/zq maps` — show the current map ID/name and how many quests have been recorded for the current faction.
-- `/zq mapid` — show only WoW's current live map ID and map name.
+- `/zq maps` — show current map ID/name and locally learned quest count.
+- `/zq mapid` — show only WoW's current live map ID/name.
 - `/zq mapexport` — open only the map/quest learning export.
-- `/zq export` — open the normal phase-learning export followed by the map/quest learning block.
+- `/zq export` — open the phase-learning export followed by the map/quest block.
 
 ### Export format
 
-Version 0.2.16 changes both learning exports to **tab-separated** fields:
+Current exports use tab-separated schema version 2:
 
 - `ZQGPHASEDATA|2`
 - `ZQGMAPQUESTDATA|2`
 
-The earlier v1 format used the pipe character (`|`) between fields. WoW text controls also use pipe-prefixed sequences for text formatting, so combinations produced by normal field boundaries could be interpreted instead of copied literally. The v2 format keeps the same data but uses tabs between fields so quest names and headers remain intact when copied from the in-game export box.
-
-The exports intentionally do not include character names, realm names, GUIDs, guild names, or account identifiers.
+Tabs avoid WoW interpreting normal pipe-delimited field boundaries as text-formatting escape sequences. Exports intentionally omit character names, realm names, GUIDs, guild names, and account identifiers.
 
 ## Historical/time phases
 
-Some outdoor zones can exist in older and newer world states. Zone Quest Guide treats these as timeline filters rather than mixing both versions together.
+Known timeline locations currently include Dustwallow Marsh/Theramore, Blasted Lands, Peak of Serenity, Silithus, Darkshore, Teldrassil/Darnassus where tied to Darkshore, Tirisfal Glades/Undercity, Arathi Highlands, Uldum, Vale of Eternal Blossoms, and Quel'Thalas/Eversong/Ghostlands/Silvermoon.
 
-Known timeline locations currently include:
-
-- **Dustwallow Marsh / Theramore**
-- **Blasted Lands**
-- **Peak of Serenity**
-- **Silithus**
-- **Darkshore**
-- **Teldrassil / Darnassus** where tied to the Darkshore state
-- **Tirisfal Glades / Undercity**
-- **Arathi Highlands**
-- **Uldum**
-- **Vale of Eternal Blossoms**
-- **Quel'Thalas / Eversong Woods / Ghostlands / Silvermoon City**
-
-The registry models the old/current Zidormi-style pair. It does not claim to identify every scenario, campaign, faction-control, or warfront state inside a current-era zone.
+Most locations use a two-state old/current model. **Arathi Highlands is handled separately because current Retail exposes three useful Zidormi states: before the Fourth War, the Fourth War/Warfront era, and the current-present state.**
 
 ### Live-confirmed Midnight Quel'Thalas maps
 
-During Retail testing, WoW returned:
+Retail testing returned:
 
-- **UiMapID `2537` / `Quel'Thalas`** while standing in the current Midnight world.
-- **UiMapID `95` / `Ghostlands`** after entering the old Burning Crusade Ghostlands.
+- `2537 / Quel'Thalas` in the current Midnight world.
+- `95 / Ghostlands` in the old Burning Crusade version.
 
-Zone Quest Guide treats `2537` as a reliable **PRESENT / Midnight Quel'Thalas** signal. The timeline registry treats map `95` as **PAST / Burning Crusade Quel'Thalas**.
-
-The Thalassian Pass portal can move the player into the old Burning Crusade area without selecting Zidormi gossip, while Zidormi can also teleport the player there. For this layout, the actual map identity is therefore a stronger signal than a cached conversation state.
+Zone Quest Guide treats `2537` as **PRESENT / Midnight Quel'Thalas** and `95` as **PAST / Burning Crusade Quel'Thalas**.
 
 ### Live-confirmed Blasted Lands behavior
 
-Retail testing confirmed both **PRESENT / Iron Horde** and **PAST / Before invasion** return **UiMapID `17` / `Blasted Lands`**. Blasted Lands therefore cannot be classified from map ID alone; Zidormi or reliable phase-exclusive quest evidence is still required. Alternate Blasted Lands-related UiMapIDs remain unclassified until their live role is observed in-game.
+Retail testing confirmed both **PRESENT / Iron Horde** and **PAST / Before invasion** can return `17 / Blasted Lands`. Map ID alone therefore cannot classify the Blasted Lands timeline; Zidormi or reliable phase-exclusive quest evidence is still required.
 
-### Zidormi/Rhonormu detection
+### Live-confirmed Arathi Highlands behavior
 
-On a recognized timeline NPC, Zone Quest Guide reads the offered gossip option as a phase clue.
+Version 0.2.19 adds a targeted three-state Arathi timeline handler based on live in-game observations:
 
-- A **return/back to the present** option means the character is currently in the older **PAST** state.
-- An option offering to show/revisit an earlier version means the character is currently in the **PRESENT** state before switching.
+- `2372 / Arathi Highlands` was observed in the current-present state while Zidormi offered to return the player to the Highlands during the Fourth War.
+- `14 / Arathi Highlands` was observed while Zidormi offered both **before the war** and **present time** destinations, identifying that state as the **FOURTH WAR / Warfront era**.
+- The older **PAST / Before Fourth War** state can be learned from the Zidormi destination the player selects even if WoW reuses an Arathi UiMapID.
 
-Known historical wording can include phrases such as **before**, **past**, **show me**, **relive**, **during**, and **age of**.
+The addon therefore does not force map `14` to mean every old Arathi state. It uses Zidormi's available destination set and the selected destination to distinguish the three states, while map `2372` is a direct current-present signal.
+
+Arathi timeline labels are:
+
+- `PAST / Before Fourth War`
+- `FOURTH WAR / Warfront era`
+- `PRESENT / Current Arathi Highlands`
+
+## Zidormi/Rhonormu detection
+
+For normal two-state locations, Zone Quest Guide reads the offered timeline gossip option as a phase clue. A return/back-to-present option means the player is in the older state; wording such as before, past, show me, relive, during, or age of can indicate an older destination.
+
+Arathi uses its dedicated three-state handler rather than forcing those options into a two-state present/past model.
 
 Manual overrides remain available as a fallback:
 
-- `/zq phase`
 - `/zq phase auto`
 - `/zq phase past`
 - `/zq phase present`
 
 ## Stable diagnostics
 
-Version 0.2.18 loads `SlashDiagnostics.lua` last so the commands used for timeline/map testing do not accidentally fall through to Core.lua's default show/hide behavior if an older slash-command wrapper chain becomes fragile.
+`SlashDiagnostics.lua` loads last so timeline/map testing commands cannot accidentally fall through to Core.lua's default show/hide behavior.
 
-- `/zq phase` — print the current timeline, detection source, map ID, and map name.
-- `/zq maps` — print the current map ID/name plus the local learned quest count for the current faction.
-- `/zq mapid` — print only the current live map ID/name; this replaces the longer `/run C_Map...` diagnostic for normal testing.
-- `/zq check` — print map ID/name, timeline/source, learned quest count, and current-session Wago phase/map-quest counts in one line.
+- `/zq phase` — current timeline, source, map ID, and map name.
+- `/zq maps` — current map plus local learned quest count.
+- `/zq mapid` — live map ID/name.
+- `/zq check` — map ID/name, timeline/source, learned quest count, and current-session Wago phase/map-quest counts.
 - `/zq debug` — alias for `/zq check`.
-
-Phase-changing commands such as `/zq phase auto`, `/zq phase past`, and `/zq phase present` continue through the existing phase handler.
 
 ## Phase learning
 
-The account-wide `ZoneQuestGuideDB.phaseLearning` store records quest evidence when Zone Quest Guide has a reliable historical-phase signal.
+`ZoneQuestGuideDB.phaseLearning` stores quest evidence when Zone Quest Guide has a reliable historical-phase signal. Available, offered, accepted, active, and turned-in observations can be stored locally; accepted-only evidence is considered weak because a quest can remain accepted after changing maps or timelines.
 
-It can record quests WoW reports as available, offered by an NPC, accepted, active at an NPC, or turned in in that phase. Accepted-only observations are treated as weak phase evidence because an accepted quest can remain in the quest log after switching timelines.
-
-Commands:
-
-- `/zq learn` — show phase-learning status.
-- `/zq export` — open the combined phase + map/quest learning export.
-- `/zq contribute` — show contribution instructions and the Google Form URL.
+Learned observations are evidence only and are not automatically promoted into curated quest-phase requirements.
 
 ## Community reporting
 
@@ -143,129 +123,91 @@ Current contribution form:
 
 `https://forms.gle/Gnqf8kN44kDZxMs86`
 
-The addon can remind the player when useful data exists, but it does not silently upload the manual export. The player chooses whether to copy and submit it.
+The addon can remind the player when useful data exists, but the player chooses whether to copy and submit the manual export.
 
 ### Wago Analytics
 
-Zone Quest Guide includes an optional Wago Analytics bridge. The configured project ID is `EGPeM3N1`.
+Configured project ID: `EGPeM3N1`.
 
-When WagoAnalytics is available, Zone Quest Guide can automatically contribute two anonymous evidence streams while the player quests normally:
+When WagoAnalytics is available, Zone Quest Guide can contribute two anonymous streams while the player quests normally:
 
-- **Phase evidence** — map ID, faction, reliable phase, quest ID, evidence type, and phase source for available/offered/active/turned-in observations.
-- **Map/quest evidence** — map ID, faction, quest ID, and evidence type for available/offered/active/turned-in observations even when no historical phase is known.
+- **Phase evidence:** map ID, faction, reliable phase, quest ID, evidence type, and phase source.
+- **Map/quest evidence:** map ID, faction, quest ID, and evidence type even when no historical phase is known.
 
-Each unique observation is sent at most once per UI session to reduce duplicate counters. Accepted-only and generic seen observations are deliberately not sent. Taxi-flight scans are suppressed so temporary flyover maps are not treated as quest locations.
+Only stronger **available**, **offered**, **active**, and **turned-in** observations are automatically reported. Accepted-only and generic seen observations remain local. Taxi-flight scans are suppressed.
 
-Character names, realm names, guild names, GUIDs, account identifiers, quest names, and manual phase overrides are not included in these Wago metric keys.
+Character names, realms, guild names, GUIDs, account identifiers, quest names, and manual phase overrides are not included in Wago metric keys.
 
-- `/zq wago` — show Wago bridge status and the number of phase/map-quest observations queued during the current UI session.
+- `/zq wago` — show Wago bridge status and this UI session's phase/map-quest queued counts.
 - `/zq telemetry` — alias for `/zq wago`.
 
-Wago Analytics only uploads for players using the Wago App with Analytics data sharing enabled. The Wago project and Analytics dashboard exist, but no downloadable Wago release has been published yet. **GitHub remains the only listed distribution platform until a Wago release is actually available.**
+Wago upload still depends on the player's Wago App Analytics-sharing setting. No downloadable Wago release has been published yet, so **GitHub remains the only listed distribution platform**.
 
 ## Navigation HUD
 
-The floating navigation HUD remains visible independently of the main quest list.
+The floating navigation HUD stays visible independently of the main quest list. It shows the selected target/status, rotates toward the destination when WoW exposes usable position/facing data, and shows distance when usable map/world-position data is available.
 
-- Shows the selected target and status.
-- Rotates toward the destination when WoW exposes usable position/facing data.
-- Shows distance in yards when map/world-position data is available.
-- Includes supplemental location hints when present.
-- **Shift-drag** moves the HUD and saves its position.
+- Shift-drag to move it.
 - `/zq arrow` toggles it.
-- `/zq arrow reset` restores its default position.
+- `/zq arrow reset` restores the default position.
 
-Zone Quest Guide does not calculate a movement-speed ETA because current Retail clients can expose movement speed as a protected/secret value.
+Zone Quest Guide does not calculate movement-speed ETA because current Retail clients can expose movement speed as a protected/secret value.
 
 ## Quest automation
 
-Quest automation is optional and defaults to OFF. Open `/zq options` or click **Options**:
+Quest automation defaults to OFF. Open `/zq options` to control:
 
-- **Auto accept quests** — selects and accepts available quests automatically.
-- **Auto turn in completed quests** — advances completed quests and claims the reward when no meaningful reward choice is present.
+- **Auto accept quests**
+- **Auto turn in completed quests**
 
-Quests with multiple reward choices remain open for manual selection. Holding **Shift** while interacting with an NPC temporarily bypasses automation.
+Quests with meaningful reward choices remain open for manual selection. Holding Shift while interacting with an NPC temporarily bypasses automation.
 
 ## Commands
 
-- `/zq`
-- `/zq show`
-- `/zq hide`
-- `/zq refresh`
-- `/zq auto`
+- `/zq`, `/zq show`, `/zq hide`, `/zq refresh`, `/zq auto`
 - `/zq minimap`
-- `/zq arrow`
-- `/zq arrow reset`
-- `/zq options`
-- `/zq autoaccept`
-- `/zq autoturnin`
-- `/zq autocomplete`
-- `/zq phase`
-- `/zq phase auto`
-- `/zq phase past`
-- `/zq phase present`
-- `/zq learn`
-- `/zq maps`
-- `/zq mapid`
-- `/zq check`
-- `/zq debug`
-- `/zq export`
-- `/zq mapexport`
-- `/zq contribute`
-- `/zq wago`
-- `/zq telemetry`
+- `/zq arrow`, `/zq arrow reset`
+- `/zq options`, `/zq autoaccept`, `/zq autoturnin`, `/zq autocomplete`
+- `/zq phase`, `/zq phase auto`, `/zq phase past`, `/zq phase present`
+- `/zq learn`, `/zq maps`, `/zq mapid`, `/zq check`, `/zq debug`
+- `/zq export`, `/zq mapexport`, `/zq contribute`
+- `/zq wago`, `/zq telemetry`
 
 ## GitHub ZIP packages
 
-GitHub's built-in **Code -> Download ZIP** button is a source-code archive. GitHub automatically names that archive after the repository and branch, so the `main` branch downloads as `ZoneQuestGuide-main.zip` and extracts to `ZoneQuestGuide-main`.
-
-Version 0.2.15 added a packaging workflow so normal addon packages do not use that source-archive name:
-
-- Every push to `main` produces a GitHub Actions artifact named **ZoneQuestGuide**, which downloads as `ZoneQuestGuide.zip` and contains the addon under a top-level `ZoneQuestGuide/` folder.
-- When a GitHub Release is published, the workflow also attaches a versioned package such as `ZoneQuestGuide-0.2.18.zip`.
-- The packaged addon excludes repository-only `.git`/`.github` metadata and preserves the folder name WoW expects.
-
-The GitHub Actions packaging job has completed and the generated artifact structure has been inspected. The packaged addon still needs to be launched in World of Warcraft before the packaging path is considered fully in-game verified.
-
-For normal installs, use the packaged artifact/release ZIP rather than GitHub's automatic branch source archive.
+GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.19.zip`.
 
 ## Install
 
 1. Exit World of Warcraft.
-2. Download a packaged **ZoneQuestGuide.zip** or versioned GitHub Release ZIP. If using GitHub's **Code -> Download ZIP** source archive instead, rename the extracted `ZoneQuestGuide-main` folder to `ZoneQuestGuide` first.
-3. Place the `ZoneQuestGuide` folder into `World of Warcraft/_retail_/Interface/AddOns/`.
-4. Start WoW.
-5. Enable **Zone Quest Guide** at character select.
-6. Enter the world and use `/zq` if the panel is hidden.
+2. Download the packaged `ZoneQuestGuide.zip` or a versioned GitHub Release ZIP.
+3. Place the top-level `ZoneQuestGuide` folder into `World of Warcraft/_retail_/Interface/AddOns/`.
+4. Start WoW and enable **Zone Quest Guide**.
+5. Use `/zq` if the panel is hidden.
 
 ## Important limitations
 
-WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Supplemental data still has to be reviewed and expanded over time.
+WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Map/quest learning records evidence, not automatic proof that a quest belongs exclusively to one map or timeline. Wago counters are aggregated evidence and do not replace review of local/manual exports.
 
-Map/quest learning records what WoW exposes on the player's current map; it is evidence, not automatic proof that a quest belongs exclusively to that map or timeline.
+## In-game/test plan for v0.2.19
 
-Phase learning only records a phase association when the historical phase is known from a reliable signal. Learned observations are not automatically promoted into official quest-phase requirements.
-
-Wago Analytics counters are aggregated evidence, not a replacement for reviewing the local/manual exports. Zone Quest Guide deliberately keeps weaker accepted/seen map observations local instead of transmitting them automatically.
-
-## In-game/test plan for v0.2.18
-
-1. Update to v0.2.18 and `/reload`.
-2. Run `/zq check` while standing in Arathi Highlands. Confirm it prints one diagnostic line instead of showing/hiding the main addon window.
-3. Run `/zq phase`, `/zq maps`, and `/zq mapid` separately and confirm each prints its expected status without toggling the panel.
-4. Before talking to Zidormi in Arathi Highlands, record the `/zq check` result. Switch timelines, then run `/zq check` again and compare the map ID and timeline.
-5. With WagoAnalytics loaded, generate a strong quest observation and confirm the map/quest session count shown by `/zq check` or `/zq wago` increases.
-6. Continue the v0.2.16 export check: `/zq mapexport` and `/zq export` should preserve complete tab-separated headers and quest names.
-7. Confirm normal commands such as `/zq show`, `/zq hide`, `/zq arrow`, and `/zq options` still pass through the final diagnostic router correctly.
+1. Update to v0.2.19 and `/reload` in Arathi Highlands.
+2. In current Arathi, run `/zq check`; map `2372` should report **PRESENT / Current Arathi Highlands (detected)**.
+3. Talk to Zidormi and choose **during the Fourth War**. After the transition, `/zq check` should show map `14` and **FOURTH WAR / Warfront era (Zidormi)** when Zidormi exposes both the before-war and present destinations.
+4. Choose **before the war** and verify the label becomes **PAST / Before Fourth War**. Record `/zq check` so we can see whether WoW keeps map `14` or exposes a third live UiMapID.
+5. Return to the Fourth War and then current-present state, verifying the timeline updates in both directions without keeping a stale label.
+6. Confirm `/zq phase`, `/zq maps`, `/zq mapid`, and `/zq check` still print without toggling the addon panel.
+7. With WagoAnalytics loaded, generate a strong quest observation and verify the map/quest session count increases; then confirm the new counters reach the Wago development dashboard.
+8. Continue checking `/zq mapexport` and `/zq export` for intact tab-separated headers and quest names.
 
 ## Roadmap
 
-- Use collected map/quest associations to discover more live Retail map aliases automatically.
+- Discover the live map behavior of Arathi's pre-Fourth-War state.
+- Use collected map/quest associations to discover more Retail map aliases automatically.
 - Validate remaining Zidormi/Rhonormu timeline zones in-game.
-- Review Wago Analytics map/quest counters and refine telemetry volume/cardinality if needed before the first public Wago release.
+- Review Wago map/quest telemetry volume/cardinality before the first public Wago release.
 - Automate review/import of trusted Google Form submissions.
-- Expand curated phase-exclusive quest mappings from reviewed evidence.
-- Expand supplemental quest-chain and prerequisite coverage.
+- Expand curated phase-exclusive quest mappings and supplemental quest-chain coverage.
 
 ## Release notes
 
