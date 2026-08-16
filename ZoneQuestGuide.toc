@@ -2,7 +2,7 @@
 ## Title: Zone Quest Guide
 ## Notes: Shows unfinished quests for your current zone and points you toward the selected quest.
 ## Author: OpenAI + Player
-## Version: 0.1.0
+## Version: 0.1.1
 ## SavedVariables: ZoneQuestGuideDB
 
 QuestData.lua
