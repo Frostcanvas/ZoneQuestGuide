@@ -1,5 +1,21 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.12 - August 16, 2026 - Available on GitHub**
+
+* **Added** a central Retail timeline-zone registry covering the known Zidormi/Rhonormu world-state switches: Dustwallow Marsh/Theramore, Blasted Lands, Peak of Serenity, Silithus, Darkshore, Tirisfal Glades, Arathi Highlands, Uldum, Vale of Eternal Blossoms, and the newer Quel'Thalas switch for Eversong Woods/Ghostlands at Thalassian Pass. Silithus also recognizes Rhonormu as a valid timeline NPC.
+
+* **Fixed** phased zones that could look like ordinary zones until the player first spoke to Zidormi. Darkshore in particular can use several Retail map IDs; Zone Quest Guide now recognizes known alternate map IDs and can also match the live map/subzone name, so the **Timeline: UNKNOWN - talk to Zidormi before questing.** warning can appear before questing starts.
+
+* **Improved** timeline switching across alternate map IDs by keeping the detected PAST/PRESENT state under the logical zone timeline instead of tying the session state to only one UiMapID. Related areas such as Teldrassil/Darnassus and Undercity can share the appropriate Darkshore or Tirisfal timeline state without receiving a misleading same-map Zidormi waypoint.
+
+* **Improved** Zidormi gossip detection for historical options whose wording does not literally contain "before" or "past". Known timeline NPC interactions can now also recognize phrases such as **show me**, **relive**, **during**, and **age of**, which is needed for locations such as Uldum and the Burning Crusade-era Eversong Woods/Ghostlands switch.
+
+* **Changed** Peak of Serenity detection to use the actual Peak of Serenity subzone rather than marking all of Kun-Lai Summit as a timeline zone. The new Quel'Thalas switch likewise warns players to visit Zidormi at Thalassian Pass instead of creating a false local waypoint inside Eversong Woods or Ghostlands.
+
+*Darkshore switching was observed in-game in the player's recording: the label changed between PAST and PRESENT after the Zidormi selection, and WoW displayed its normal fade/phase-transition effect. The new v0.2.12 registry, pre-conversation warning on alternate map IDs, additional zones, broader gossip wording, Rhonormu handling, and cross-map timeline state still require in-game testing. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
 **VERSION 0.2.11 - August 16, 2026 - Available on GitHub**
 
 * **Added** Darkshore (UiMapID 62) to Zone Quest Guide's historical-timeline zone list so the main window now recognizes Darkshore as a Zidormi-controlled phased zone instead of treating it like an ordinary single-timeline zone.
@@ -166,7 +182,7 @@
 
 **VERSION 0.2.0 - August 16, 2026 - Available on GitHub**
 
-* **Added** a new floating navigation HUD inspired by the large directional arrows used by full quest-guide addons. The HUD stays on screen independently of the main quest list and shows the selected quest, its current status, and a large directional arrow.
+* **Added** a new floating navigation HUD inspired by the large directional arrows used by full quest-guide addons. The HUD stays on screen independently of the main Zone Quest Guide window and shows the selected quest, its current status, and a large directional arrow.
 
 * **Improved** directional navigation with a smoothly rotating drawn arrow instead of relying on Unicode arrow characters. The new HUD builds the arrow from WoW line regions, so it should avoid the missing-glyph/square problem seen with the original font-based indicator while also giving the player a much easier direction to follow at a glance.
 
@@ -190,7 +206,7 @@
 
   Previously, the phase framework could refresh when WoW reported phase-related changes, but it still needed a zone-specific detector or a manual `/zq phase` override to know what those phases actually meant. Zidormi's own gossip option provides a much more useful player-facing signal because the destination she offers is the opposite of the version the character is currently in.
 
-* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
+* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing the gossip window does not change the detected phase.
 
 * **Added** a **(Zidormi)** source label to the phase badge so the player can tell when the current **PAST** or **PRESENT** phase was identified from a Zidormi conversation rather than a manual override.
 
