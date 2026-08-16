@@ -13,11 +13,19 @@ local ADDON_NAME, ZQG = ...
 --     name = "Example Quest",
 --     x = 0.5123, -- normalized map coordinate (0.0 to 1.0)
 --     y = 0.4388,
---     prereqs = { 12344 }, -- optional; all must be completed
---     faction = "Horde",   -- optional: "Horde" or "Alliance"
---     phase = "past",      -- optional historical/time-phase key
+--     prereqs = { 12344 },       -- optional; ALL listed quests must be completed
+--     blockedBy = { 12346 },      -- optional; hide if ANY listed quest is completed
+--     exclusiveWith = { 12347 }, -- optional; hide if ANY listed quest is active or completed
+--     faction = "Horde",         -- optional: "Horde" or "Alliance"
+--     phase = "past",            -- optional historical/time-phase key
 --   },
 -- }
+--
+-- blockedBy is for breadcrumbs/older quests that become permanently unavailable
+-- once later progression is completed. exclusiveWith is for route choices where
+-- accepting or completing another quest removes this supplemental option. These
+-- rules affect supplemental database records; live Blizzard quest sources still
+-- reflect what the character can actually see/accept in the active world state.
 --
 -- Phase-tagged supplemental quests are filtered by TimePhases.lua so quests
 -- from an older/present version of the same zone are not mixed together. Live
