@@ -1,5 +1,17 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.9 - August 16, 2026 - Available on GitHub**
+
+* **Added** the assigned Wago project ID (`EGPeM3N1`) to `ZoneQuestGuide.toc` as `X-Wago-ID`, allowing the existing Wago telemetry bridge to register observations against the correct Zone Quest Guide project.
+
+* **Changed** Wago setup from a placeholder/no-project state to a real configured project. `/zq wago` can now distinguish between a configured project whose Wago Analytics client is available and a configured project where the Wago App/Analytics data sharing is still unavailable.
+
+* **Improved** the Wago rollout path by keeping `WagoAnalytics` optional. Players who do not use the Wago App can continue using Zone Quest Guide normally, while players who opt in to Wago Analytics can contribute the stronger anonymous phase evidence already defined in v0.2.7.
+
+*The Wago project now exists and the project ID is configured in the addon, but Wago Analytics still needs to be activated on the project's Analytics tab and the developer/client Wago App needs Analytics data sharing enabled before telemetry can be verified. In-game testing is still required for `/zq wago` and actual evidence delivery. Zone Quest Guide has not yet published a Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
 **VERSION 0.2.8 - August 16, 2026 - Available on GitHub**
 
 * **Changed** the phase-data contribution destination from the temporary GitHub issue page to the dedicated ZoneQuestGuide Google Form supplied for community submissions.
