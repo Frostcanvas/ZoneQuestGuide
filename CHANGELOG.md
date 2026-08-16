@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.20 - August 16, 2026 - Available on GitHub**
+
+* **Added** direct Tirisfal Glades map detection from live Retail testing. The player's recording showed `2070 / Tirisfal Glades` in **PRESENT / After Battle for Lordaeron** and `18 / Tirisfal Glades` after switching to **PAST / Before Battle for Lordaeron**.
+
+* **Improved** Tirisfal timeline handling so those two live map identities can classify the timeline without requiring a fresh Zidormi conversation. Map `2070` now provides direct PRESENT evidence and map `18` provides direct PAST evidence; manual phase overrides remain stronger.
+
+* **Changed** alternate Tirisfal map `1247` to remain registered but unclassified until its live role is observed in-game instead of assuming that every related Tirisfal UiMapID corresponds to one of the two Zidormi states.
+
+* **Confirmed** from the player's recording that the existing timeline UI and `/zq check` followed the Zidormi transition in both directions: Zidormi offered the pre-Lordaeron destination while on map `2070`, and after switching the addon displayed PAST while `/zq check` reported map `18`; Zidormi then offered a return to the present.
+
+*The map IDs and Zidormi behavior above were observed in World of Warcraft, but the new v0.2.20 automatic map-derived detection itself has not yet been tested after updating. Verify `/zq check` reports `2070` as PRESENT before talking to Zidormi, reports `18` as PAST before reopening Zidormi, and returns to PRESENT cleanly after switching back. Also continue checking Arathi's three-state handler and Wago map/quest telemetry. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.19 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** Arathi Highlands timeline display staying on the old two-state **PRESENT / Warfront era** label even after Retail moved the player between different Arathi world states. Live testing showed that current Arathi can report `2372 / Arathi Highlands`, while the Fourth War state can report `14 / Arathi Highlands`; the older generic Zidormi classifier was not designed for this newer three-way setup.
@@ -284,7 +298,7 @@
 
 * **Added** distance and travel-time information to the floating navigation HUD. When WoW exposes enough map/world-position information for the selected quest, Zone Quest Guide estimates the remaining distance in yards. While the character is moving, it also estimates travel time from the current movement speed. Quests without usable world-position data continue to show normal tracking information instead.
 
-* **Added** **Shift-drag** positioning for the floating arrow. Its position is saved between sessions. `/zq arrow` toggles the HUD and `/zq arrow reset` restores its default position.
+* **Added** **Shift-drag** positioning for the floating arrow. Its position is saved between sessions. `/zq arrow` toggles it and `/zq arrow reset` restores its default position.
 
 * **Improved** navigation while using flight paths. WoW can report intermediate zone changes while a taxi flies across several maps, which could make a quest guide briefly replace the go-to destination with a quest from a zone the player was only passing over. Zone Quest Guide now keeps its floating HUD and addon-owned destination on the last stable quest while a taxi crosses into another map, then refreshes for the zone where the character actually lands.
 
@@ -300,7 +314,7 @@
 
 * **Improved** Blasted Lands phase handling based on the in-game Zidormi wording observed during testing. If Zidormi offers **"Take me back to the present."**, Zone Quest Guide treats the current version as **PAST**. If Zidormi instead offers to show the zone **before** an invasion/event or otherwise travel to the past, the character is currently in the **PRESENT** version.
 
-  Previously, the phase framework could refresh when WoW reported a phase-related change, but it still needed a zone-specific detector or manual override to know which phase was actually active. Zidormi's own gossip option gives a much stronger clue because the destination she offers is the opposite of the current timeline.
+  Previously, the phase framework could refresh when WoW reported phase-related changes, but it still needed a zone-specific detector or manual override to know which phase was actually active. Zidormi's own gossip option gives a much stronger clue because the destination she offers is the opposite of the current timeline.
 
 * **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
 
