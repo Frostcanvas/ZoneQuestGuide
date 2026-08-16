@@ -246,15 +246,15 @@ end
 
 local function SafeField(value)
     value = tostring(value or "")
-    value = value:gsub("[|\r\n]", " ")
+    value = value:gsub("[|\t\r\n]", " ")
     return value
 end
 
 local function BuildMapQuestExport()
     local store = GetStore()
     local lines = {
-        "ZQGMAPQUESTDATA|1",
-        "# mapID|mapName|faction|questID|name|completed|seen|available|offered|accepted|active|turnedIn",
+        "ZQGMAPQUESTDATA|2",
+        "# mapID\tmapName\tfaction\tquestID\tname\tcompleted\tseen\tavailable\toffered\taccepted\tactive\tturnedIn",
     }
 
     for _, mapID in ipairs(SortedKeys(store.maps, true)) do
@@ -276,7 +276,7 @@ local function BuildMapQuestExport()
                     tostring(quest.accepted or 0),
                     tostring(quest.active or 0),
                     tostring(quest.turnedIn or 0),
-                }, "|")
+                }, "\t")
             end
         end
     end
@@ -323,7 +323,7 @@ local exportNote = exportFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlig
 exportNote:SetPoint("TOPLEFT", exportTitle, "BOTTOMLEFT", 0, -6)
 exportNote:SetWidth(630)
 exportNote:SetJustifyH("LEFT")
-exportNote:SetText("Includes phase evidence plus map ID + quest associations. No character name, realm, GUID, guild, or account identifier is included.")
+exportNote:SetText("Includes tab-separated phase evidence plus map ID + quest associations. No character name, realm, GUID, guild, or account identifier is included.")
 
 local exportClose = CreateFrame("Button", nil, exportFrame, "UIPanelCloseButton")
 exportClose:SetPoint("TOPRIGHT", -3, -3)
