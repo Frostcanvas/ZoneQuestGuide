@@ -5,6 +5,9 @@ if not mainFrame then
     return
 end
 
+-- Quest IDs are stable, so once WoW identifies a quest as daily during this
+-- session we can safely remember that classification even after the NPC gossip
+-- window closes or the player moves around the zone.
 local dailyQuestIDs = {}
 
 local function CurrentMapID()
@@ -21,8 +24,6 @@ local function MarkDaily(questID)
 end
 
 local function RefreshMapDailyCache()
-    wipe(dailyQuestIDs)
-
     local mapID = CurrentMapID()
     if not mapID then
         return
@@ -129,11 +130,17 @@ function ZQG.GetQuestCategoryPriority(quest)
     return ZQG.IsDailyQuest(quest) and 2 or 1
 end
 
+-- Capture only Core.lua's ten quest-row buttons. Other buttons such as Options
+-- can also have text regions, so size checking prevents them from being moved
+-- into the quest sections.
 local rows = {}
 for _, child in ipairs({ mainFrame:GetChildren() }) do
     if child.GetObjectType and child:GetObjectType() == "Button"
         and child.text and child.text.SetText then
-        rows[#rows + 1] = child
+        local width, height = child:GetSize()
+        if math.abs((width or 0) - 330) < 1 and math.abs((height or 0) - 25) < 1 then
+            rows[#rows + 1] = child
+        end
     end
 end
 
@@ -152,8 +159,8 @@ dailyHeader:SetText("DAILY QUESTS")
 dailyHeader:SetJustifyH("LEFT")
 
 -- The original panel was sized for ten rows without section headings. Give the
--- headings a little room while keeping the same ten-quest display limit.
-mainFrame:SetHeight(485)
+-- two-section layout enough room for all ten quest rows plus the footer.
+mainFrame:SetHeight(520)
 
 local function PositionGroup(header, group, y)
     if #group == 0 then
