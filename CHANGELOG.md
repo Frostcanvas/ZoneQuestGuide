@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.17 - August 16, 2026 - Available on GitHub**
+
+* **Added** automatic anonymous Wago Analytics reporting for strong map/quest observations while players use Zone Quest Guide normally. When WagoAnalytics is available, observations that a quest is **available**, **offered**, **active**, or **turned in** can now increment a map/quest counter containing the live map ID, faction, quest ID, and evidence type even when no Zidormi timeline is known.
+
+* **Improved** Wago privacy and data quality by keeping accepted-only and generic seen observations local. Those weaker observations can remain valid in a quest log while the player moves between maps or timelines, so they are not automatically transmitted as proof that a quest belongs to the current map. Character names, realms, guild names, GUIDs, account identifiers, and quest names are not included in the Wago map/quest metric keys.
+
+* **Improved** flight-path handling for learning and telemetry. Map scans are now skipped while `UnitOnTaxi("player")` reports an active taxi flight, reducing false quest/map associations caused by transient continent or flyover maps while traveling. Strong NPC and turn-in evidence resumes normally after landing.
+
+* **Improved** `/zq wago` so it reports how many phase observations and map/quest observations have been queued during the current UI session. Wago also receives a `map_quest_learning_enabled` switch and a `map_quest_evidence_total` counter to make the new stream easier to verify on the Analytics dashboard.
+
+*The existing Wago Analytics registration/upload path was already observed producing dashboard data, but the new v0.2.17 map/quest counters and taxi suppression have not yet been tested in World of Warcraft. Verify `/zq wago` increases its map/quest count after an offered/available/active/turned-in quest, confirm `mapquest_m..._q...` and `map_quest_evidence_total` appear on the Wago development dashboard, and confirm taxi flights do not create new flyover-map associations. Wago App Analytics sharing is still required for upload. Zone Quest Guide still has no published Wago download, so GitHub remains the only listed distribution platform.*
+
+---
+
 **VERSION 0.2.16 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** learning-export text becoming corrupted inside WoW's copy box. The previous pipe-delimited format could accidentally form WoW text-markup sequences at normal field boundaries, causing headers such as `questID|name` to split and quest names beginning with certain letters to lose characters when displayed or copied.
@@ -192,7 +206,7 @@
 
 * **Added** Horde/Alliance-separated learning data so multiple unquested alts can help map the same phased zone without mixing faction-specific quest observations together. The data is stored in the existing account-wide `ZoneQuestGuideDB` SavedVariable.
 
-* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that a quest belongs to the phase currently being viewed.
+* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that the quest belongs to the phase currently being viewed.
 
 * **Added** `/zq learn` to show the current map's phase-learning status and `/zq export` to open a copyable phase-data report for testing/community contributions.
 
