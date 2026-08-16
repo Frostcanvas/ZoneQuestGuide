@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.19 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** Arathi Highlands timeline display staying on the old two-state **PRESENT / Warfront era** label even after Retail moved the player between different Arathi world states. Live testing showed that current Arathi can report `2372 / Arathi Highlands`, while the Fourth War state can report `14 / Arathi Highlands`; the older generic Zidormi classifier was not designed for this newer three-way setup.
+
+* **Added** a dedicated three-state Arathi timeline handler with separate player-facing states for **PAST / Before Fourth War**, **FOURTH WAR / Warfront era**, and **PRESENT / Current Arathi Highlands**. Map `2372` is treated as a direct current-present signal based on the player's live `/zq check` result.
+
+* **Improved** Arathi Zidormi detection by reading all of her available destinations instead of forcing the first historical-looking option into a simple past/present pair. When the player is in the Fourth War state and Zidormi offers both a **before the war** destination and a **present time** destination, Zone Quest Guide can infer that the missing current state is the Fourth War. Selecting a destination updates the session state immediately and refreshes again after the world transition.
+
+* **Changed** Arathi map `14` to remain context-sensitive rather than being hard-coded as every historical state. This lets the addon keep following Zidormi when Retail reuses an Arathi UiMapID for more than one older state, while still using `2372` as strong evidence for the current-present version.
+
+*The player's screenshots confirmed that `/zq check` now prints correctly in-game, that current Arathi returned map `2372`, and that another Arathi state returned map `14`. The screenshots also showed Zidormi offering **during the Fourth War** from the `2372` state and both **before the war** and **present time** destinations from the `14` state. The new v0.2.19 three-state detection itself still needs in-game testing after updating. Verify `2372` displays PRESENT, the `14` state with the two opposite destinations displays FOURTH WAR, then choose the before-war option and send another `/zq check` so the older state's live map behavior can be recorded. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.18 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** the diagnostic `/zq phase` and `/zq maps` commands falling through to the core addon's default show/hide action on clients where the older chain of slash-command wrappers did not reach the intended handler. A final diagnostic router now loads after the other modules and intercepts the testing commands before they can toggle the main panel.
@@ -220,7 +234,7 @@
 
 * **Added** Horde/Alliance-separated learning data so multiple unquested alts can help map the same phased zone without mixing faction-specific quest observations together. The data is stored in the existing account-wide `ZoneQuestGuideDB` SavedVariable.
 
-* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that the quest belongs to the phase currently being viewed.
+* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that a quest belongs to the phase currently being viewed.
 
 * **Added** `/zq learn` to show the current map's phase-learning status and `/zq export` to open a copyable phase-data report for testing/community contributions.
 
