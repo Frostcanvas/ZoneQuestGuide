@@ -19,10 +19,11 @@ local ADDON_NAME, ZQG = ...
 -- }
 
 ZQG.StaticQuests = ZQG.StaticQuests or {}
+ZQG.LocationHints = ZQG.LocationHints or {}
 
 -- Thousand Needles (UiMapID 64)
--- Initial coverage for the Splithoof Heights -> Speedbarge chain that exposed
--- the first missing-quest report during v0.1.0 testing.
+-- Initial coverage for the Splithoof Heights -> Speedbarge -> Freewind Post
+-- section that exposed the first missing-quest reports during testing.
 ZQG.StaticQuests[64] = {
     -- Horde
     {
@@ -47,6 +48,14 @@ ZQG.StaticQuests[64] = {
         x = 0.7594,
         y = 0.7469,
         prereqs = { 25826 },
+        faction = "Horde",
+    },
+    {
+        id = 25874,
+        name = "Horn of the Traitor",
+        x = 0.4459,
+        y = 0.4995,
+        prereqs = { 25836 },
         faction = "Horde",
     },
 
@@ -75,4 +84,25 @@ ZQG.StaticQuests[64] = {
         prereqs = { 25825 },
         faction = "Alliance",
     },
+    {
+        id = 25873,
+        name = "Horn of the Traitor",
+        x = 0.4458,
+        y = 0.4996,
+        prereqs = { 25835 },
+        faction = "Alliance",
+    },
+}
+
+-- Some quest locations are misleading on WoW's flat 2D map because the NPC or
+-- objective is on a different vertical level. These notes let the UI warn the
+-- player instead of making a nearby map pin look like it is on the same level.
+ZQG.LocationHints[25874] = {
+    short = "UPPER LEVEL",
+    text = "Upper level of Freewind Post - Montarr is on top of the mountain. Follow the path uphill.",
+}
+
+ZQG.LocationHints[25873] = {
+    short = "UPPER LEVEL",
+    text = "Upper level of Freewind Post - Montarr is on top of the mountain. Follow the path uphill.",
 }
