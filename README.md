@@ -1,11 +1,11 @@
 # Zone Quest Guide
 
-**Version:** 0.1.4  
+**Version:** 0.1.5  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one job: when you enter a zone, show unfinished quests the client can identify and point you toward the selected quest.
 
-## What v0.1.4 does
+## What v0.1.5 does
 
 - Detects the current Retail WoW zone/map.
 - Lists unfinished accepted quests that WoW reports on that map.
@@ -23,7 +23,17 @@ Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one jo
 - Adds a minimap button for fast access to Zone Quest Guide.
 - Remembers the minimap button position between sessions.
 - Adds a normal addon-list icon instead of the red question-mark placeholder.
-- Includes initial Horde and Alliance quest-chain coverage for the Splithoof Heights/Speedbarge section of Thousand Needles.
+- Supports location hints for quests where a flat 2D map can be misleading because the quest is on another vertical level, inside a cave, on an upper floor, or otherwise requires a terrain note.
+- Includes an **UPPER LEVEL** warning for both Horde and Alliance versions of **Horn of the Traitor** at Freewind Post.
+- Includes initial Horde and Alliance quest-chain coverage for the Splithoof Heights/Speedbarge/Freewind Post section of Thousand Needles.
+
+## Location hints
+
+WoW's world and minimap are primarily 2D. Two NPCs can look close together on the map even when one is far above or below the other.
+
+Zone Quest Guide can attach a supplemental location hint to quests where terrain matters. The hint appears beside the quest in the list and on the current target. Hovering the quest row shows a longer explanation.
+
+For **Horn of the Traitor**, the addon marks the quest **UPPER LEVEL** and explains that Montarr is on top of Freewind Post and that the player should follow the path uphill.
 
 ## Minimap button
 
@@ -34,9 +44,11 @@ Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one jo
 
 ## Important limitation
 
-WoW's live addon APIs do not reliably expose every historical, unaccepted side quest in every zone. `QuestData.lua` is the supplemental database layer for quests the live API does not provide. We will continue expanding that database zone-by-zone while adding prerequisite and quest-chain logic.
+WoW's live addon APIs do not reliably expose every historical, unaccepted side quest in every zone. `QuestData.lua` is the supplemental database layer for quests the live API does not provide. We will continue expanding that database zone-by-zone while adding prerequisite, route, and quest-chain logic.
 
 Opening an NPC's gossip or quest-detail window can expose additional available quests to the addon for the current session, but Zone Quest Guide still cannot automatically discover every unseen old quest from the live API alone.
+
+The normal map pin does not contain reliable height/elevation information. Location hints are therefore supplemental data that we can add for known cliffs, caves, towers, upper floors, and similar cases.
 
 ## Install
 
@@ -66,20 +78,23 @@ Opening an NPC's gossip or quest-detail window can expose additional available q
 4. When both statuses are present, verify **AVAILABLE** quests are listed above **IN PROGRESS** quests.
 5. With auto-point enabled, verify the addon targets the nearest **AVAILABLE** quest before any accepted quest.
 6. Accept the selected available quest and verify it changes to **IN PROGRESS** and the next available quest becomes the automatic target if one exists.
-7. Verify the navigation indicator renders as an arrow graphic instead of a square/missing-glyph box.
-8. Verify the minimap button appears and left-clicking it shows/hides the addon.
-9. Right-click the minimap button and verify the quest list refreshes.
-10. Shift-drag the minimap button, reload the UI, and verify its position is remembered.
-11. Open an NPC with an available quest and verify the quest appears immediately in Zone Quest Guide.
-12. Accept an available quest and verify the temporary quest-starter map waypoint disappears while the quest becomes **IN PROGRESS**.
-13. Turn in a quest and confirm it disappears.
-14. Cross into another zone and confirm the list updates.
-15. Take a portal/loading screen and confirm the addon continues refreshing normally.
+7. At Freewind Post, verify **Horn of the Traitor** shows **[UPPER LEVEL]** in the list and on the current target.
+8. Hover **Horn of the Traitor** and verify the tooltip explains that Montarr is on top of Freewind Post and the path goes uphill.
+9. Verify the navigation indicator renders as an arrow graphic instead of a square/missing-glyph box.
+10. Verify the minimap button appears and left-clicking it shows/hides the addon.
+11. Right-click the minimap button and verify the quest list refreshes.
+12. Shift-drag the minimap button, reload the UI, and verify its position is remembered.
+13. Open an NPC with an available quest and verify the quest appears immediately in Zone Quest Guide.
+14. Accept an available quest and verify the temporary quest-starter map waypoint disappears while the quest becomes **IN PROGRESS**.
+15. Turn in a quest and confirm it disappears.
+16. Cross into another zone and confirm the list updates.
+17. Take a portal/loading screen and confirm the addon continues refreshing normally.
 
 ## Roadmap
 
 - Full quest-chain and prerequisite awareness.
 - Expanded supplemental quest database for old side quests.
+- Multi-step route hints for cliffs, caves, towers, and hard-to-reach quest givers.
 - Better distance/route selection.
 - Further navigation-arrow polish after in-game testing.
 - Per-character and account-wide completion options.
