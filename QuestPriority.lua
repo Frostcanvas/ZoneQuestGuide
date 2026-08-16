@@ -33,10 +33,18 @@ local function UpdateAutoTrackLabel()
     for _, child in ipairs({ mainFrame:GetChildren() }) do
         if child.GetObjectType and child:GetObjectType() == "CheckButton"
             and child.text and child.text.SetText then
-            child.text:SetText("Auto-point to next available quest")
+            child.text:SetText("Auto-point to next zone quest")
             return
         end
     end
+end
+
+local function GetCategoryPriority(quest)
+    if ZQG.GetQuestCategoryPriority then
+        return ZQG.GetQuestCategoryPriority(quest)
+    end
+
+    return 1
 end
 
 local function GetStatusPriority(quest)
@@ -75,6 +83,15 @@ local function ApplyAvailableFirstPriority()
     end
 
     table.sort(quests, function(a, b)
+        -- Normal zone quests stay ahead of repeatable daily quests so automatic
+        -- navigation remains focused on permanent zone completion first.
+        local ac = GetCategoryPriority(a)
+        local bc = GetCategoryPriority(b)
+        if ac ~= bc then
+            return ac < bc
+        end
+
+        -- Within each section: AVAILABLE, TURN IN, then IN PROGRESS.
         local ap = GetStatusPriority(a)
         local bp = GetStatusPriority(b)
         if ap ~= bp then
