@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.10 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the initial Wago Analytics integration to follow Wago's documented shim-based setup instead of talking directly to the optional global analytics provider. Zone Quest Guide now bundles Wago's official `WagoAnalytics` shim and registers project `EGPeM3N1` through `LibStub("WagoAnalytics"):Register(...)` when the addon loads.
+
+* **Added** bundled `LibStub` support so the Wago shim can load safely even when the player does not have another addon that already provides LibStub. The official Wago shim and its MIT license are included under `libs/WagoAnalytics/`.
+
+* **Improved** `/zq wago` status reporting so it distinguishes between the configured/shim-ready state and the real `WagoAnalytics` addon actually being loaded. The command no longer claims that the player's Wago App data-sharing setting can be verified from WoW Lua; it explicitly notes that uploading still depends on the Wago App setting.
+
+* **Changed** Wago registration timing to happen during addon loading, matching Wago's guidance that registration should occur at the beginning of the game session rather than waiting for a later gameplay event.
+
+*In-game testing is still required. After Analytics is activated for the Wago project and the Wago App has Analytics data sharing enabled, verify `/zq wago` reports project `EGPeM3N1` with the WagoAnalytics addon loaded, then generate a strong phased quest observation and confirm it reaches the Wago Analytics development dashboard. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
 **VERSION 0.2.9 - August 16, 2026 - Available on GitHub**
 
 * **Added** the assigned Wago project ID (`EGPeM3N1`) to `ZoneQuestGuide.toc` as `X-Wago-ID`, allowing the existing Wago telemetry bridge to register observations against the correct Zone Quest Guide project.
