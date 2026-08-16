@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.9  
+**Version:** 0.2.10  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -26,7 +26,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Learns phase/quest evidence locally while Horde and Alliance characters play in known historical phases.
 - Exports anonymous phase-learning data for community contributions.
 - Reminds players when useful phase data is ready to contribute and provides the ZoneQuestGuide Google Form URL.
-- Includes an optional Wago Analytics telemetry bridge for stronger anonymous phase evidence using the configured Zone Quest Guide Wago project ID.
+- Includes an optional Wago Analytics telemetry bridge for stronger anonymous phase evidence using Wago's documented shim integration and the configured Zone Quest Guide Wago project ID.
 
 ## Navigation HUD
 
@@ -82,7 +82,7 @@ Data is separated by **map**, **faction**, **quest ID**, and **phase**. Because 
 
 The learner deliberately does **not** infer a timeline from a completed quest alone. A character may have completed that quest in another historical version earlier, so completion is stored as supporting information rather than proof that the quest belongs to the phase currently being viewed.
 
-The learner also does not automatically promote observations into official `QuestPhaseRequirements`. A quest seen in one phase may still exist in another phase under different prerequisites. Learned observations are evidence that can be reviewed and then added to the curated database once the phase requirement is trustworthy.
+The learner also does not automatically promote observations into official `QuestPhaseRequirements`. A quest seen in one phase may still be available in another phase under different prerequisites. Learned observations are evidence that can be reviewed and then added to the curated database once the phase requirement is trustworthy.
 
 Commands:
 
@@ -123,7 +123,11 @@ The bridge can report:
 
 Accepted-quest map scans are intentionally not sent to Wago because a quest can remain accepted after a player changes timelines. Wago metric keys are limited to map ID, faction, phase, quest ID, evidence type, and the reliable phase source. Character names, realms, guild names, GUIDs, and manual phase overrides are excluded.
 
-Version 0.2.9 configures the Zone Quest Guide Wago project ID `EGPeM3N1` through `X-Wago-ID`. The Wago project now exists, but Wago Analytics still has to be activated for that project and the Wago App must have Analytics data sharing enabled before telemetry can actually be verified. `/zq wago` or `/zq telemetry` shows the current bridge status. Zone Quest Guide continues working normally when WagoAnalytics is unavailable.
+Version 0.2.9 configured the Zone Quest Guide Wago project ID `EGPeM3N1` through `X-Wago-ID`.
+
+Version 0.2.10 aligns the implementation with Wago's documented setup. Zone Quest Guide now bundles the official Wago Analytics shim, loads it through the TOC with `WagoAnalytics` as an optional dependency, includes LibStub so the shim can load independently, and registers the project during addon loading instead of waiting for a later gameplay event.
+
+`/zq wago` or `/zq telemetry` reports whether project `EGPeM3N1` is configured, whether the shim registered, and whether the real `WagoAnalytics` addon is loaded on the current client. WoW Lua cannot directly verify the Wago App's Analytics sharing preference, so the status message treats that as an external app setting rather than claiming it is enabled or disabled.
 
 The Wago project has been created, but no Wago release has been published yet. Until the first release is actually published there, GitHub remains the only distribution platform listed as available.
 
@@ -155,7 +159,7 @@ or:
 
 `Timeline: PAST / Before invasion (Zidormi)`
 
-If Zone Quest Guide knows the zone supports historical versions but cannot determine the current one, v0.2.5 shows an explicit warning such as:
+If Zone Quest Guide knows the zone supports historical versions but cannot determine which one, v0.2.5 shows an explicit warning such as:
 
 `Timeline: UNKNOWN - talk to Zidormi before questing.`
 
@@ -245,15 +249,15 @@ Phase learning only records a phase association when the current historical phas
 
 Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
 
-## In-game test plan for v0.2.9
+## In-game test plan for v0.2.10
 
 1. Enter or reload in Blasted Lands and verify the current timeline warning/detection still behaves correctly.
 2. Confirm the active timeline with Zidormi or a known phase-exclusive quest and continue questing normally.
 3. Run `/zq contribute` and verify the contribution window still shows the Google Form URL and the export remains copyable.
-4. On the Wago project, activate Analytics. In the Wago App, enable Analytics data sharing and link the developer account/development mode as appropriate for testing.
-5. Reload WoW and run `/zq wago`. Verify it reports the configured Wago bridge as active when WagoAnalytics is available.
+4. On the Wago project, activate Analytics. In the Wago App, enable Analytics data sharing, link the developer account, and enable development mode for Zone Quest Guide before testing.
+5. Update the local addon to v0.2.10, reload WoW, and run `/zq wago`. Verify it reports project `EGPeM3N1` and says the real WagoAnalytics addon is loaded when that addon is present.
 6. While the timeline is known from Zidormi or curated detection, trigger stronger evidence such as viewing an offered quest, seeing an available quest line, interacting with an active quest at an NPC, or turning in a quest.
-7. Verify the Wago Analytics dashboard receives development/test measurements without character names, realm names, guild names, GUIDs, or manual phase overrides.
+7. Verify the Wago Analytics development dashboard receives test measurements without character names, realm names, guild names, GUIDs, or manual phase overrides.
 8. Continue verifying Zidormi switch synchronization, phase learning under the correct timeline, the secret-number navigation fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
 
 ## Roadmap
