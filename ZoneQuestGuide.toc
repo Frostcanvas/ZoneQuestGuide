@@ -15,8 +15,8 @@ Core.lua
 QuestStatus.lua
 TimePhases.lua
 TimelineZones.lua
-ArathiTimeline.lua
 TimelineSync.lua
+ArathiTimeline.lua
 PhaseLearning.lua
 MapQuestLearning.lua
 ContributionPrompt.lua
