@@ -1,5 +1,17 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.1.7 - August 16, 2026 - Available on GitHub**
+
+* **Added** a new **TURN IN** quest status. Accepted quests whose objectives are complete now change from **IN PROGRESS** to **TURN IN**, making it much easier to see which quests are ready to hand back to an NPC.
+
+* **Improved** quest-status priority. **AVAILABLE** quests remain first as requested, completed **TURN IN** quests are shown next, and normal **IN PROGRESS** quests follow after them. If there are no available quests, automatic quest selection can therefore fall back to a completed quest before choosing one that still has unfinished objectives.
+
+* **Improved** status consistency across the quest-priority and location-hint systems so a completed quest does not get changed back to **IN PROGRESS** when another part of the Zone Quest Guide window refreshes.
+
+*In-game testing is still required to confirm quests switch to **TURN IN** immediately when their objectives become complete and return to the normal list flow after being handed in.*
+
+---
+
 **VERSION 0.1.6 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** the minimap/world-map destination not always changing cleanly when Zone Quest Guide switched from one available quest to another.
