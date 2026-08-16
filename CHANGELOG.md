@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.1 - August 16, 2026 - Available on GitHub**
+
+* **Added** timeline-switch navigation guidance. When Zone Quest Guide knows the selected quest belongs to a different historical version of the current zone, the existing floating navigation HUD can now switch from the quest objective to the zone's timeline-switch NPC and display **SWITCH TIMELINE** instead of directing the player toward an unavailable objective.
+
+* **Added** initial Blasted Lands Horde phase requirements for **Attack of the Iron Horde** and **Under Siege**. These quests are marked as requiring the present/Iron Horde-incursion version of Blasted Lands. If Zidormi detection says the character is in the past version, the navigation HUD points to Zidormi and tells the player to switch to **PRESENT**.
+
+* **Added** Blasted Lands Zidormi navigation data at the northern border so the timeline warning can be an actual directional arrow rather than only a text message.
+
+* **Improved** phase-aware navigation so, after the player changes to the required timeline and Zone Quest Guide refreshes, the same HUD can return to the real quest target automatically.
+
+*In-game testing is still required to confirm the HUD changes to **SWITCH TIMELINE**, points accurately to Zidormi in Blasted Lands, and returns to the quest target after changing phases. The Zidormi location and the Horde quest phase requirements are based on known game data, but the new v0.2.1 behavior has not yet been verified in-game.*
+
+---
+
 **VERSION 0.2.0 - August 16, 2026 - Available on GitHub**
 
 * **Added** a new floating navigation HUD inspired by the large directional arrows used by full quest-guide addons. The HUD stays on screen independently of the main Zone Quest Guide window and shows the selected quest, its current status, and a large directional arrow.
