@@ -1,10 +1,8 @@
 local ADDON_NAME, ZQG = ...
 
 local floor = math.floor
-local sqrt = math.sqrt
 local atan2 = math.atan2
 local pi = math.pi
-local abs = math.abs
 
 ZoneQuestGuideDB = ZoneQuestGuideDB or {}
 local DB
@@ -14,6 +12,8 @@ local state = {
     quests = {},
     selected = nil,
     lastRefresh = 0,
+    requestedQuestLinesFor = nil,
+    observedQuests = {},
 }
 
 local function Print(msg)
@@ -28,6 +28,17 @@ end
 local function IsOnQuest(questID)
     return questID and C_QuestLog and C_QuestLog.IsOnQuest
         and C_QuestLog.IsOnQuest(questID)
+end
+
+local function PlayerFaction()
+    if UnitFactionGroup then
+        return UnitFactionGroup("player")
+    end
+    return nil
+end
+
+local function FactionAllowed(faction)
+    return not faction or faction == PlayerFaction()
 end
 
 local function PrereqsMet(prereqs)
@@ -76,6 +87,9 @@ local function AddQuest(result, seen, quest)
     if not quest or not quest.id or seen[quest.id] or IsCompleted(quest.id) then
         return
     end
+    if not FactionAllowed(quest.faction) then
+        return
+    end
     if not PrereqsMet(quest.prereqs) then
         return
     end
@@ -96,6 +110,67 @@ local function GetQuestName(questID, fallback)
         end
     end
     return "Quest " .. tostring(questID)
+end
+
+local function RequestQuestLines(mapID, force)
+    if not mapID or not C_QuestLine or not C_QuestLine.RequestQuestLinesForMap then
+        return
+    end
+    if not force and state.requestedQuestLinesFor == mapID then
+        return
+    end
+
+    state.requestedQuestLinesFor = mapID
+    pcall(C_QuestLine.RequestQuestLinesForMap, mapID)
+end
+
+local function RememberObservedQuest(questID, name)
+    if not questID or questID == 0 or IsCompleted(questID) then
+        return
+    end
+
+    local mapID = CurrentMapID()
+    if not mapID then
+        return
+    end
+
+    local x, y = PlayerPosition(mapID)
+    state.observedQuests[mapID] = state.observedQuests[mapID] or {}
+    state.observedQuests[mapID][questID] = {
+        id = questID,
+        name = GetQuestName(questID, name),
+        x = x,
+        y = y,
+        source = "observed",
+        faction = PlayerFaction(),
+    }
+end
+
+local function CaptureGossipQuests()
+    if not C_GossipInfo or not C_GossipInfo.GetAvailableQuests then
+        return
+    end
+
+    local ok, quests = pcall(C_GossipInfo.GetAvailableQuests)
+    if not ok or type(quests) ~= "table" then
+        return
+    end
+
+    for _, info in ipairs(quests) do
+        RememberObservedQuest(info.questID, info.title)
+    end
+end
+
+local function CaptureQuestDetail()
+    if not GetQuestID then
+        return
+    end
+
+    local questID = GetQuestID()
+    if questID and questID > 0 then
+        local title = GetTitleText and GetTitleText() or nil
+        RememberObservedQuest(questID, title)
+    end
 end
 
 local function CollectAcceptedQuests(mapID, result, seen)
@@ -138,8 +213,6 @@ local function CollectAvailableQuestLines(mapID, result, seen)
             local x, y = info.x, info.y
             local name = info.questName or info.questLineName
 
-            -- Some client builds return additional coordinates from
-            -- GetQuestLineInfo rather than GetAvailableQuestLines.
             if (not x or not y) and C_QuestLine.GetQuestLineInfo then
                 local detailOK, detail = pcall(C_QuestLine.GetQuestLineInfo, questID, mapID)
                 if detailOK and type(detail) == "table" then
@@ -162,6 +235,24 @@ local function CollectAvailableQuestLines(mapID, result, seen)
     end
 end
 
+local function CollectObservedQuests(mapID, result, seen)
+    local quests = state.observedQuests[mapID]
+    if not quests then
+        return
+    end
+
+    for _, info in pairs(quests) do
+        AddQuest(result, seen, {
+            id = info.id,
+            name = info.name,
+            x = info.x,
+            y = info.y,
+            source = info.source,
+            faction = info.faction,
+        })
+    end
+end
+
 local function CollectStaticQuests(mapID, result, seen)
     local list = ZQG.StaticQuests and ZQG.StaticQuests[mapID]
     if not list then
@@ -175,6 +266,7 @@ local function CollectStaticQuests(mapID, result, seen)
             x = info.x,
             y = info.y,
             prereqs = info.prereqs,
+            faction = info.faction,
             source = "database",
         })
     end
@@ -186,6 +278,7 @@ local function CollectQuests(mapID)
 
     CollectAcceptedQuests(mapID, result, seen)
     CollectAvailableQuestLines(mapID, result, seen)
+    CollectObservedQuests(mapID, result, seen)
     CollectStaticQuests(mapID, result, seen)
 
     for _, quest in ipairs(result) do
@@ -212,14 +305,11 @@ local function SetWaypointForQuest(quest)
 
     state.selected = quest
 
-    -- Accepted quests are best handed to Blizzard's own quest super-tracker.
     if quest.accepted and C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
         C_SuperTrack.SetSuperTrackedQuestID(quest.id)
         return true
     end
 
-    -- For unaccepted quest starters, use the coordinates supplied by the
-    -- quest-line API or our supplemental database.
     if quest.x and quest.y and state.mapID and C_Map and C_Map.SetUserWaypoint
         and UiMapPoint and UiMapPoint.CreateFromCoordinates then
         local point = UiMapPoint.CreateFromCoordinates(state.mapID, quest.x, quest.y)
@@ -347,8 +437,13 @@ local function UpdateRows()
 end
 
 local function Refresh()
+    local previousMapID = state.mapID
     state.mapID = CurrentMapID()
     state.selected = nil
+
+    if state.mapID ~= previousMapID then
+        state.requestedQuestLinesFor = nil
+    end
 
     if not state.mapID then
         zoneText:SetText("Current zone unavailable")
@@ -357,6 +452,8 @@ local function Refresh()
         return
     end
 
+    RequestQuestLines(state.mapID)
+
     local mapInfo = C_Map.GetMapInfo(state.mapID)
     zoneText:SetText((mapInfo and mapInfo.name or "Unknown Zone") .. "  •  unfinished quests")
 
@@ -364,7 +461,7 @@ local function Refresh()
     UpdateRows()
 
     if #state.quests == 0 then
-        targetText:SetText("No unfinished zone quests found by the current providers")
+        targetText:SetText("No unfinished quests found yet; older quests may need database coverage")
         arrow:SetText("•")
     elseif DB.autoTrack then
         SetWaypointForQuest(state.quests[1])
@@ -383,8 +480,6 @@ local function UpdateArrow()
 
     targetText:SetText(quest.name)
 
-    -- Accepted quests can change objectives dynamically, so Blizzard's
-    -- super-tracker is authoritative. Keep a neutral arrow in our panel.
     if quest.accepted or not quest.x or not quest.y or not state.mapID then
         arrow:SetText("↑")
         return
@@ -399,8 +494,6 @@ local function UpdateArrow()
 
     local dx = quest.x - px
     local dy = quest.y - py
-
-    -- Map y grows downward. Convert to an angle where 0 is north.
     local targetAngle = atan2(dx, -dy)
     local relative = targetAngle - facing
     while relative < 0 do relative = relative + (2 * pi) end
@@ -428,6 +521,9 @@ events:RegisterEvent("QUEST_ACCEPTED")
 events:RegisterEvent("QUEST_REMOVED")
 events:RegisterEvent("QUEST_TURNED_IN")
 events:RegisterEvent("QUEST_LOG_UPDATE")
+events:RegisterEvent("QUESTLINE_UPDATE")
+events:RegisterEvent("GOSSIP_SHOW")
+events:RegisterEvent("QUEST_DETAIL")
 
 events:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
@@ -449,6 +545,22 @@ events:SetScript("OnEvent", function(_, event, arg1)
         return
     end
 
+    if event == "GOSSIP_SHOW" then
+        CaptureGossipQuests()
+        C_Timer.After(0.05, Refresh)
+        return
+    end
+
+    if event == "QUEST_DETAIL" then
+        CaptureQuestDetail()
+        C_Timer.After(0.05, Refresh)
+        return
+    end
+
+    if event == "QUESTLINE_UPDATE" and arg1 == true and state.mapID then
+        RequestQuestLines(state.mapID, true)
+    end
+
     if event == "QUEST_LOG_UPDATE" then
         local now = GetTime()
         if now - state.lastRefresh < 0.5 then
@@ -466,6 +578,7 @@ SlashCmdList.ZONEQUESTGUIDE = function(msg)
     msg = (msg or ""):lower():match("^%s*(.-)%s*$")
 
     if msg == "refresh" then
+        state.requestedQuestLinesFor = nil
         Refresh()
         Print("Refreshed.")
     elseif msg == "auto" then
