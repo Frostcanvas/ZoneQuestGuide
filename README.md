@@ -1,11 +1,11 @@
 # Zone Quest Guide
 
-**Version:** 0.1.9  
+**Version:** 0.1.10  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one job: when you enter a zone, show unfinished quests the client can identify and point you toward the selected quest.
 
-## What v0.1.9 does
+## What v0.1.10 does
 
 - Detects the current Retail WoW zone/map.
 - Lists unfinished accepted quests and available quest starters the client exposes.
@@ -19,6 +19,8 @@ Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one jo
 - Supports optional **Auto Accept** and **Auto Turn-in** quest automation.
 - Supports location hints for vertical or otherwise confusing quest locations.
 - Adds time-phase awareness for zones that have older/newer historical versions.
+- Detects a zone's current **past/present** state from Zidormi's gossip option when the player talks to her.
+- Uses a nearby WoW phase-change event after a Zidormi interaction as confirmation that the offered phase switch occurred.
 - Refreshes phase-sensitive data on zone, quest, gossip, and phase-change signals.
 - Supports per-zone phase overrides for supplemental quest data when automatic identification is not reliable.
 
@@ -44,7 +46,25 @@ Some WoW zones can exist in more than one historical or phased version. Zone Que
 
 Blizzard's live quest sources normally reflect the world phase the character is currently in. The main risk is supplemental database data, because a static quest record could otherwise point toward an NPC that only exists in a different historical version of the same zone.
 
-Supplemental quest entries can now include a `phase` key such as:
+### Zidormi detection
+
+When the player talks to **Zidormi**, Zone Quest Guide now reads her visible gossip options for a strong phase signal.
+
+For example, if Zidormi offers **"Take me back to the present."**, the player must currently be in the older/past version of that zone, so Zone Quest Guide records the current session as **PAST** for that map.
+
+If Zidormi instead offers an option to show the zone **before** an invasion/event or otherwise travel to the past, Zone Quest Guide records the current version as **PRESENT**.
+
+When WoW reports a phase transition shortly after that Zidormi interaction, the addon treats it as confirmation that the offered switch occurred and updates the remembered phase for the session. Simply closing Zidormi's window does not flip the phase.
+
+The phase badge can therefore appear as something like:
+
+`[PHASE: PAST (Zidormi)]`
+
+or:
+
+`[PHASE: PRESENT (Zidormi)]`
+
+Supplemental quest entries can include a `phase` key such as:
 
 ```lua
 {
@@ -56,7 +76,7 @@ Supplemental quest entries can now include a `phase` key such as:
 }
 ```
 
-For phase-aware zones, Zone Quest Guide can use a configured detector. If the client does not expose enough information for a reliable detector, use a per-zone manual override:
+For phase-aware zones, Zone Quest Guide can also use a configured detector. If the client does not expose enough information for a reliable detector, use a per-zone manual override:
 
 - `/zq phase` — show the current phase mode.
 - `/zq phase auto` — return the current zone to automatic phase handling.
@@ -93,7 +113,9 @@ For **Horn of the Traitor**, the addon marks the quest **UPPER LEVEL** and expla
 
 WoW's live addon APIs do not reliably expose every historical, unaccepted side quest in every zone. `QuestData.lua` is the supplemental database layer for quests the live API does not provide.
 
-There is also no universal phase name that an addon can rely on for every historical-version zone, so phase-aware supplemental data may need a zone-specific detector or a manual override until that zone is fully mapped.
+There is no universal phase name that an addon can rely on for every historical-version zone. Zidormi gossip detection helps considerably in Zidormi-controlled zones, but zones with different mechanics may still need a zone-specific detector or a manual override.
+
+The Zidormi option text is also localized by WoW. The current automatic text matching is designed around the English client and still needs broader in-game testing before it can be considered reliable across every Zidormi zone and language.
 
 Quest automation depends on Blizzard's quest and gossip UI flow. Some special quests, confirmation dialogs, protected interactions, or unusual NPC behavior may still require manual input.
 
@@ -133,14 +155,17 @@ Quest automation depends on Blizzard's quest and gossip UI flow. Some special qu
 4. Verify map/minimap destinations change when the selected available quest changes.
 5. Verify Auto Accept and Auto Turn-in behavior, including reward-choice handling.
 6. Verify location hints remain visible on known vertical quest locations.
-7. In a zone with multiple historical phases, change the zone's phase and confirm Zone Quest Guide refreshes instead of keeping stale phase-sensitive data.
-8. For a phase-tagged supplemental test quest, verify `/zq phase past` and `/zq phase present` only expose the matching record.
-9. Verify `/zq phase auto` clears the saved override for that map.
-10. Take a portal/loading screen and confirm the addon continues refreshing normally.
+7. In a Zidormi-controlled phased zone, talk to Zidormi while she offers **"Take me back to the present."** and verify Zone Quest Guide shows **PAST (Zidormi)**.
+8. In the present version of that zone, talk to Zidormi while she offers the older/before version and verify Zone Quest Guide shows **PRESENT (Zidormi)**.
+9. Select Zidormi's phase-switch option and verify the guide refreshes to the opposite phase after WoW reports the phase transition.
+10. For a phase-tagged supplemental test quest, verify `/zq phase past` and `/zq phase present` only expose the matching record.
+11. Verify `/zq phase auto` clears the saved override for that map.
+12. Take a portal/loading screen and confirm the addon continues refreshing normally.
 
 ## Roadmap
 
-- Add zone-specific automatic phase detectors and phase-tagged quest data as phased zones are mapped.
+- Add phase-tagged quest data for Blasted Lands and other Zidormi zones as they are mapped in-game.
+- Add zone-specific automatic phase detectors where Zidormi gossip is not available.
 - Full quest-chain and prerequisite awareness.
 - Expanded supplemental quest database for old side quests.
 - Weekly/other recurring quest sections if needed.
