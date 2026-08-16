@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.17  
+**Version:** 0.2.18  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -21,6 +21,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Exports anonymous learning data for community review using a WoW-safe tab-separated format.
 - Provides a manual Google Form contribution path and an optional Wago Analytics bridge for stronger anonymous phase and map/quest evidence.
 - Builds a clean GitHub package named **ZoneQuestGuide.zip** for development downloads and versioned release ZIPs with an internal **ZoneQuestGuide** addon folder.
+- Includes stable `/zq phase`, `/zq maps`, `/zq mapid`, and `/zq check` diagnostics loaded after the older slash-command wrappers.
 
 ## Map and quest learning
 
@@ -44,6 +45,7 @@ Map scans are skipped while the player is on a taxi flight path so transient par
 Commands:
 
 - `/zq maps` — show the current map ID/name and how many quests have been recorded for the current faction.
+- `/zq mapid` — show only WoW's current live map ID and map name.
 - `/zq mapexport` — open only the map/quest learning export.
 - `/zq export` — open the normal phase-learning export followed by the map/quest learning block.
 
@@ -54,7 +56,7 @@ Version 0.2.16 changes both learning exports to **tab-separated** fields:
 - `ZQGPHASEDATA|2`
 - `ZQGMAPQUESTDATA|2`
 
-The earlier v1 format used the pipe character (`|`) between fields. WoW text controls also use pipe-prefixed sequences for text formatting, so combinations produced by normal field boundaries could be interpreted instead of copied literally. For example, a separator immediately before a field beginning with `n`, `t`, or `R` could damage the displayed/copied text. The v2 format keeps the same data but uses tabs between fields so quest names and headers remain intact when copied from the in-game export box.
+The earlier v1 format used the pipe character (`|`) between fields. WoW text controls also use pipe-prefixed sequences for text formatting, so combinations produced by normal field boundaries could be interpreted instead of copied literally. The v2 format keeps the same data but uses tabs between fields so quest names and headers remain intact when copied from the in-game export box.
 
 The exports intentionally do not include character names, realm names, GUIDs, guild names, or account identifiers.
 
@@ -108,6 +110,18 @@ Manual overrides remain available as a fallback:
 - `/zq phase auto`
 - `/zq phase past`
 - `/zq phase present`
+
+## Stable diagnostics
+
+Version 0.2.18 loads `SlashDiagnostics.lua` last so the commands used for timeline/map testing do not accidentally fall through to Core.lua's default show/hide behavior if an older slash-command wrapper chain becomes fragile.
+
+- `/zq phase` — print the current timeline, detection source, map ID, and map name.
+- `/zq maps` — print the current map ID/name plus the local learned quest count for the current faction.
+- `/zq mapid` — print only the current live map ID/name; this replaces the longer `/run C_Map...` diagnostic for normal testing.
+- `/zq check` — print map ID/name, timeline/source, learned quest count, and current-session Wago phase/map-quest counts in one line.
+- `/zq debug` — alias for `/zq check`.
+
+Phase-changing commands such as `/zq phase auto`, `/zq phase past`, and `/zq phase present` continue through the existing phase handler.
 
 ## Phase learning
 
@@ -192,6 +206,9 @@ Quests with multiple reward choices remain open for manual selection. Holding **
 - `/zq phase present`
 - `/zq learn`
 - `/zq maps`
+- `/zq mapid`
+- `/zq check`
+- `/zq debug`
 - `/zq export`
 - `/zq mapexport`
 - `/zq contribute`
@@ -205,7 +222,7 @@ GitHub's built-in **Code -> Download ZIP** button is a source-code archive. GitH
 Version 0.2.15 added a packaging workflow so normal addon packages do not use that source-archive name:
 
 - Every push to `main` produces a GitHub Actions artifact named **ZoneQuestGuide**, which downloads as `ZoneQuestGuide.zip` and contains the addon under a top-level `ZoneQuestGuide/` folder.
-- When a GitHub Release is published, the workflow also attaches a versioned package such as `ZoneQuestGuide-0.2.17.zip`.
+- When a GitHub Release is published, the workflow also attaches a versioned package such as `ZoneQuestGuide-0.2.18.zip`.
 - The packaged addon excludes repository-only `.git`/`.github` metadata and preserves the folder name WoW expects.
 
 The GitHub Actions packaging job has completed and the generated artifact structure has been inspected. The packaged addon still needs to be launched in World of Warcraft before the packaging path is considered fully in-game verified.
@@ -231,15 +248,15 @@ Phase learning only records a phase association when the historical phase is kno
 
 Wago Analytics counters are aggregated evidence, not a replacement for reviewing the local/manual exports. Zone Quest Guide deliberately keeps weaker accepted/seen map observations local instead of transmitting them automatically.
 
-## In-game/test plan for v0.2.17
+## In-game/test plan for v0.2.18
 
-1. Update to v0.2.17 with WagoAnalytics loaded and Wago App Analytics sharing enabled, then run `/zq wago` and note the initial phase/map-quest observation counts.
-2. Interact with an NPC offering a quest, view a quest-detail screen, or turn in a quest while standing in a stable zone. Run `/zq wago` again and confirm the **map/quest** queued count increases.
-3. Refresh the Wago Analytics development dashboard and look for `map_quest_learning_enabled`, `map_quest_evidence_total`, and `mapquest_m..._q..._...` counters corresponding to the observed map/quest IDs.
-4. In a known timeline, generate available/offered/active/turned-in evidence and confirm the existing `phase_evidence_total` and `phase_m...` metrics still arrive alongside the new map/quest stream.
-5. Take a taxi flight across multiple zones and confirm the local map learner does not add new flyover-map associations simply from crossing those zones; after landing, normal map learning should resume.
+1. Update to v0.2.18 and `/reload`.
+2. Run `/zq check` while standing in Arathi Highlands. Confirm it prints one diagnostic line instead of showing/hiding the main addon window.
+3. Run `/zq phase`, `/zq maps`, and `/zq mapid` separately and confirm each prints its expected status without toggling the panel.
+4. Before talking to Zidormi in Arathi Highlands, record the `/zq check` result. Switch timelines, then run `/zq check` again and compare the map ID and timeline.
+5. With WagoAnalytics loaded, generate a strong quest observation and confirm the map/quest session count shown by `/zq check` or `/zq wago` increases.
 6. Continue the v0.2.16 export check: `/zq mapexport` and `/zq export` should preserve complete tab-separated headers and quest names.
-7. Continue timeline research by comparing `/zq maps` before and after Zidormi in Arathi Highlands, Tirisfal Glades, Silithus, Darkshore, and other supported zones.
+7. Confirm normal commands such as `/zq show`, `/zq hide`, `/zq arrow`, and `/zq options` still pass through the final diagnostic router correctly.
 
 ## Roadmap
 
