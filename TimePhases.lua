@@ -14,6 +14,12 @@ for mapID, quests in pairs(ZQG.StaticQuests or {}) do
     end
 end
 
+-- Direct interaction with Zidormi can expose the active historical version of
+-- a zone through her gossip option. Remember that strong signal for the current
+-- session without permanently saving it, because the player can switch again.
+local sessionDetectedPhases = {}
+local pendingZidormiSwitch
+
 local function Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccffZoneQuestGuide:|r " .. tostring(msg))
 end
@@ -31,6 +37,74 @@ local function GetDB()
     return ZoneQuestGuideDB
 end
 
+local function IsZidormiNPC()
+    if not UnitName then
+        return false
+    end
+
+    local name = UnitName("npc")
+    return type(name) == "string" and name:lower() == "zidormi"
+end
+
+local function DetectZidormiGossipPhase()
+    if not IsZidormiNPC() or not C_GossipInfo or not C_GossipInfo.GetOptions then
+        return false
+    end
+
+    local mapID = CurrentMapID()
+    if not mapID then
+        return false
+    end
+
+    local ok, options = pcall(C_GossipInfo.GetOptions)
+    if not ok or type(options) ~= "table" then
+        return false
+    end
+
+    local currentPhase
+    local targetPhase
+
+    for _, info in ipairs(options) do
+        local text = info and (info.name or info.text or info.optionText)
+        if type(text) == "string" then
+            local lower = text:lower()
+
+            -- Example confirmed in Blasted Lands during testing:
+            -- "Take me back to the present." means the player is currently
+            -- standing in the older/past version of the zone.
+            if lower:find("present", 1, true)
+                and (lower:find("back", 1, true) or lower:find("return", 1, true)) then
+                currentPhase = "past"
+                targetPhase = "present"
+                break
+            end
+
+            -- Zidormi's opposite option commonly offers to show the player the
+            -- zone before an invasion/event or otherwise sends them to the past.
+            if lower:find("before", 1, true) or lower:find("past", 1, true) then
+                currentPhase = "present"
+                targetPhase = "past"
+                break
+            end
+        end
+    end
+
+    if not currentPhase then
+        return false
+    end
+
+    sessionDetectedPhases[mapID] = currentPhase
+
+    local now = GetTime and GetTime() or 0
+    pendingZidormiSwitch = {
+        mapID = mapID,
+        targetPhase = targetPhase,
+        expires = now + 15,
+    }
+
+    return true
+end
+
 local function ZoneHasPhaseData(mapID)
     if not mapID then
         return false
@@ -38,6 +112,10 @@ local function ZoneHasPhaseData(mapID)
 
     local DB = GetDB()
     if DB.phaseOverrides[mapID] then
+        return true
+    end
+
+    if sessionDetectedPhases[mapID] then
         return true
     end
 
@@ -83,6 +161,11 @@ function ZQG.GetTimePhaseKey(mapID)
     local override = DB.phaseOverrides[mapID]
     if override and override ~= "auto" then
         return tostring(override):lower(), "manual"
+    end
+
+    local zidormiPhase = sessionDetectedPhases[mapID]
+    if zidormiPhase then
+        return zidormiPhase, "zidormi"
     end
 
     local detected = DetectConfiguredPhase(mapID)
@@ -159,6 +242,8 @@ local function GetPhaseDisplay(mapID)
 
     if source == "manual" then
         return label .. " (manual)"
+    elseif source == "zidormi" then
+        return label .. " (Zidormi)"
     elseif source == "detected" then
         return label
     end
@@ -219,21 +304,59 @@ local function SchedulePhaseRefresh(delay)
     end)
 end
 
+local function ApplyPendingZidormiSwitch()
+    if not pendingZidormiSwitch then
+        return false
+    end
+
+    local mapID = CurrentMapID()
+    local now = GetTime and GetTime() or 0
+
+    if pendingZidormiSwitch.expires and now > pendingZidormiSwitch.expires then
+        pendingZidormiSwitch = nil
+        return false
+    end
+
+    if mapID ~= pendingZidormiSwitch.mapID then
+        pendingZidormiSwitch = nil
+        return false
+    end
+
+    sessionDetectedPhases[mapID] = pendingZidormiSwitch.targetPhase
+    pendingZidormiSwitch = nil
+    return true
+end
+
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 events:RegisterEvent("ZONE_CHANGED")
 events:RegisterEvent("QUEST_LOG_UPDATE")
+events:RegisterEvent("GOSSIP_SHOW")
 events:RegisterEvent("GOSSIP_CLOSED")
 
 -- UNIT_PHASE has existed across many WoW clients, but keep its registration
 -- optional so a future client change cannot prevent the addon from loading.
 pcall(events.RegisterEvent, events, "UNIT_PHASE")
 
-events:SetScript("OnEvent", function()
+events:SetScript("OnEvent", function(_, event)
+    if event == "GOSSIP_SHOW" then
+        DetectZidormiGossipPhase()
+        SchedulePhaseRefresh(0.05)
+        return
+    end
+
+    -- If the player had Zidormi open and WoW then reports a phase transition,
+    -- treat that event as confirmation that the offered switch occurred. Merely
+    -- closing the gossip window does not change our detected phase.
+    if event == "UNIT_PHASE" then
+        ApplyPendingZidormiSwitch()
+    end
+
     -- No single event provides a universal historical-phase identity. Treat
-    -- these events as refresh hints and let the configured detector or per-zone
-    -- manual override decide which supplemental records are valid.
+    -- the remaining events as refresh hints and let Zidormi detection, a
+    -- configured detector, or a per-zone manual override decide which
+    -- supplemental records are valid.
     SchedulePhaseRefresh(0.15)
 end)
 
