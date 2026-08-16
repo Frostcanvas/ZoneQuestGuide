@@ -15,11 +15,19 @@ local ADDON_NAME, ZQG = ...
 --     y = 0.4388,
 --     prereqs = { 12344 }, -- optional; all must be completed
 --     faction = "Horde",   -- optional: "Horde" or "Alliance"
+--     phase = "past",      -- optional historical/time-phase key
 --   },
 -- }
+--
+-- Phase-tagged supplemental quests are filtered by TimePhases.lua so quests
+-- from an older/present version of the same zone are not mixed together. Live
+-- Blizzard quest sources already reflect the character's active world phase.
+-- If a phased zone needs reliable automatic identification, it can register a
+-- detector and player-facing labels in ZQG.TimePhaseZones[uiMapID].
 
 ZQG.StaticQuests = ZQG.StaticQuests or {}
 ZQG.LocationHints = ZQG.LocationHints or {}
+ZQG.TimePhaseZones = ZQG.TimePhaseZones or {}
 
 -- Thousand Needles (UiMapID 64)
 -- Initial coverage for the Splithoof Heights -> Speedbarge -> Freewind Post
