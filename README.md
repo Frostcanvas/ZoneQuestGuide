@@ -1,11 +1,11 @@
 # Zone Quest Guide
 
-**Version:** 0.1.1  
+**Version:** 0.1.2  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one job: when you enter a zone, show unfinished quests the client can identify and point you toward the selected quest.
 
-## What v0.1.1 does
+## What v0.1.2 does
 
 - Detects the current Retail WoW zone/map.
 - Lists unfinished accepted quests that WoW reports on that map.
@@ -18,8 +18,18 @@ Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one jo
 - Lets you click a quest row to change the target.
 - Uses Blizzard super-tracking for accepted quests.
 - Uses a Blizzard user waypoint for unaccepted quest starters with coordinates.
-- Displays a lightweight 8-direction arrow for quest-starter coordinates.
+- Displays a textured directional indicator instead of relying on Unicode arrow glyphs.
+- Adds a minimap button for fast access to Zone Quest Guide.
+- Remembers the minimap button position between sessions.
+- Adds a normal addon-list icon instead of the red question-mark placeholder.
 - Includes initial Horde and Alliance quest-chain coverage for the Splithoof Heights/Speedbarge section of Thousand Needles.
+
+## Minimap button
+
+- **Left-click** — show or hide Zone Quest Guide.
+- **Right-click** — refresh the current zone quest list.
+- **Shift-drag** — move the button around the minimap.
+- `/zq minimap` — hide or show the minimap button.
 
 ## Important limitation
 
@@ -45,6 +55,7 @@ Opening an NPC's gossip or quest-detail window can expose additional available q
 - `/zq hide` — hide the panel
 - `/zq refresh` — force a current-zone refresh and re-request quest-line data
 - `/zq auto` — toggle automatic quest selection
+- `/zq minimap` — toggle the minimap button
 
 ## Test plan
 
@@ -52,18 +63,22 @@ Opening an NPC's gossip or quest-detail window can expose additional available q
 2. Verify accepted quests show as **IN PROGRESS**.
 3. Verify available quest-line starters show as **AVAILABLE**.
 4. In Thousand Needles on Horde, verify **Go Blow that Horn** appears after completing **Eminent Domain** and **Defend the Drill**.
-5. Open an NPC with an available quest and verify the quest appears immediately in Zone Quest Guide.
-6. Click a row and confirm WoW creates or super-tracks a waypoint.
-7. Turn in a quest and confirm it disappears.
-8. Cross into another zone and confirm the list updates.
-9. Take a portal/loading screen and confirm the addon continues refreshing normally.
+5. Verify the navigation indicator renders as an arrow graphic instead of a square/missing-glyph box.
+6. Verify the minimap button appears and left-clicking it shows/hides the addon.
+7. Right-click the minimap button and verify the quest list refreshes.
+8. Shift-drag the minimap button, reload the UI, and verify its position is remembered.
+9. Open an NPC with an available quest and verify the quest appears immediately in Zone Quest Guide.
+10. Click a quest row and confirm WoW creates or super-tracks a waypoint.
+11. Turn in a quest and confirm it disappears.
+12. Cross into another zone and confirm the list updates.
+13. Take a portal/loading screen and confirm the addon continues refreshing normally.
 
 ## Roadmap
 
 - Full quest-chain and prerequisite awareness.
 - Expanded supplemental quest database for old side quests.
 - Better distance/route selection.
-- Improved center-screen navigation arrow.
+- Further navigation-arrow polish after in-game testing.
 - Per-character and account-wide completion options.
 - Automatic GitHub release ZIP packaging.
 
