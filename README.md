@@ -1,11 +1,11 @@
 # Zone Quest Guide
 
-**Version:** 0.1.7  
+**Version:** 0.1.8  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one job: when you enter a zone, show unfinished quests the client can identify and point you toward the selected quest.
 
-## What v0.1.7 does
+## What v0.1.8 does
 
 - Detects the current Retail WoW zone/map.
 - Lists unfinished accepted quests that WoW reports on that map.
@@ -14,8 +14,9 @@ Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one jo
 - Detects available quests shown by an NPC while the gossip or quest-detail window is open and remembers them for the current session.
 - Filters completed/turned-in quests.
 - Shows three clear quest states: **AVAILABLE**, **TURN IN**, and **IN PROGRESS**.
-- Prioritizes **AVAILABLE** quests first, then completed **TURN IN** quests, then **IN PROGRESS** quests.
-- Auto-points to the nearest available quest first; if none are available, it falls back to a quest ready to turn in and then an in-progress quest.
+- Separates normal **ZONE QUESTS** from repeatable **DAILY QUESTS** in the main window.
+- Keeps permanent zone-completion quests ahead of dailies for automatic navigation.
+- Within each section, prioritizes **AVAILABLE**, then **TURN IN**, then **IN PROGRESS**.
 - Refreshes the addon-owned minimap/world-map destination whenever the selected available quest changes, so an old quest-giver marker is not left behind.
 - Lets you click a quest row to change the target.
 - Uses Blizzard super-tracking for accepted quests.
@@ -32,6 +33,20 @@ Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one jo
 - Includes an **UPPER LEVEL** warning for both Horde and Alliance versions of **Horn of the Traitor** at Freewind Post.
 - Includes initial Horde and Alliance quest-chain coverage for the Splithoof Heights/Speedbarge/Freewind Post section of Thousand Needles.
 
+## Quest sections
+
+Zone Quest Guide separates quests into two sections:
+
+### ZONE QUESTS
+
+Normal one-time zone quests stay in the main progression section. These are the quests Zone Quest Guide prioritizes when automatic navigation is enabled because completing them permanently advances zone completion and quest chains.
+
+### DAILY QUESTS
+
+Repeatable daily quests appear in their own section below the normal zone quests. A daily can still show as **AVAILABLE**, **TURN IN**, or **IN PROGRESS**, but it does not take priority over a normal zone quest.
+
+Daily completion is treated as a daily-reset state rather than permanent zone completion, so a daily that has been completed for the current reset can disappear and become eligible to appear again after a later daily reset when WoW reports it as available again.
+
 ## Quest status labels
 
 Zone Quest Guide uses three player-facing quest states:
@@ -40,7 +55,7 @@ Zone Quest Guide uses three player-facing quest states:
 - **TURN IN** — the quest is accepted and its objectives are complete, so it is ready to be handed in.
 - **IN PROGRESS** — the quest is accepted but still has unfinished objectives.
 
-Available quests remain the first priority because Zone Quest Guide is intended to help you pick up missing quests as you move through a zone. If no available quest is shown, a completed **TURN IN** quest is preferred before a normal **IN PROGRESS** quest.
+Within each quest section, available quests remain the first priority. If no available quest is shown in that section, a completed **TURN IN** quest is preferred before a normal **IN PROGRESS** quest.
 
 ## Quest automation
 
@@ -82,6 +97,8 @@ The normal map pin does not contain reliable height/elevation information. Locat
 
 Quest automation depends on Blizzard's quest and gossip UI flow. Some special quests, confirmation dialogs, protected interactions, or unusual NPC behavior may still require manual input.
 
+Daily detection depends on the daily/frequency information WoW exposes for map quests, quest-line starters, the quest log, and gossip quests. If Blizzard does not identify a particular repeatable quest as daily through those sources, it may temporarily appear with normal zone quests until we add supplemental data for it.
+
 ## Install
 
 1. Exit World of Warcraft.
@@ -108,31 +125,36 @@ Quest automation depends on Blizzard's quest and gossip UI flow. Some special qu
 
 ## Test plan
 
-1. Enter a zone where you have unfinished quests.
-2. Verify unaccepted quests show as **AVAILABLE**.
-3. Verify accepted quests with unfinished objectives show as **IN PROGRESS**.
-4. Finish all objectives for an accepted quest and verify its status changes to **TURN IN** before you hand it in.
-5. When all three statuses are present, verify they are ordered **AVAILABLE**, **TURN IN**, then **IN PROGRESS**.
-6. With auto-point enabled, verify the addon targets the nearest **AVAILABLE** quest first; if none are available, verify it can fall back to a **TURN IN** quest.
-7. Move between two available quest targets and verify the minimap/world-map destination moves to the newly selected quest instead of remaining on the old quest giver.
-8. Accept the selected available quest and verify it changes to **IN PROGRESS**, its temporary starter waypoint disappears, and the next available quest becomes the automatic target if one exists.
-9. Open `/zq options`, enable **Auto accept quests**, talk to an NPC with an available quest, and verify the quest is selected and accepted automatically.
-10. Enable **Auto turn in completed quests**, talk to an NPC with a completed quest that has no reward choice, and verify the quest turns in automatically.
-11. Test a completed quest with multiple reward choices and verify the addon leaves the reward window open for manual selection.
-12. Hold Shift while interacting with an NPC and verify the enabled automation is temporarily bypassed.
-13. At Freewind Post, verify **Horn of the Traitor** shows **[UPPER LEVEL]** in the list and on the current target.
-14. Hover **Horn of the Traitor** and verify the tooltip explains that Montarr is on top of Freewind Post and the path goes uphill.
-15. Verify the navigation indicator renders as an arrow graphic instead of a square/missing-glyph box.
-16. Verify the minimap button appears and left-clicking it shows/hides the addon.
-17. Right-click the minimap button and verify the quest list refreshes.
-18. Shift-drag the minimap button, reload the UI, and verify its position is remembered.
-19. Cross into another zone and confirm the list updates.
-20. Take a portal/loading screen and confirm the addon continues refreshing normally.
+1. Enter a zone where you have unfinished normal quests and at least one daily quest.
+2. Verify normal quests appear under **ZONE QUESTS**.
+3. Verify daily quests appear under **DAILY QUESTS** instead of being mixed with normal zone progression.
+4. Verify unaccepted quests show as **AVAILABLE**.
+5. Verify accepted quests with unfinished objectives show as **IN PROGRESS**.
+6. Finish all objectives for an accepted quest and verify its status changes to **TURN IN** before you hand it in.
+7. Within each section, verify the ordering is **AVAILABLE**, **TURN IN**, then **IN PROGRESS**.
+8. With auto-point enabled, verify a normal zone quest is preferred over a daily quest while normal zone quests remain.
+9. After normal zone quests are exhausted, verify a daily quest can still be selected and navigated to.
+10. Complete and turn in a daily and verify it disappears for the current reset when WoW reports it completed.
+11. Move between two available quest targets and verify the minimap/world-map destination moves to the newly selected quest instead of remaining on the old quest giver.
+12. Accept the selected available quest and verify it changes to **IN PROGRESS**, its temporary starter waypoint disappears, and the next appropriate quest becomes the automatic target.
+13. Open `/zq options`, enable **Auto accept quests**, talk to an NPC with an available quest, and verify the quest is selected and accepted automatically.
+14. Enable **Auto turn in completed quests**, talk to an NPC with a completed quest that has no reward choice, and verify the quest turns in automatically.
+15. Test a completed quest with multiple reward choices and verify the addon leaves the reward window open for manual selection.
+16. Hold Shift while interacting with an NPC and verify the enabled automation is temporarily bypassed.
+17. At Freewind Post, verify **Horn of the Traitor** shows **[UPPER LEVEL]** in the list and on the current target.
+18. Hover **Horn of the Traitor** and verify the tooltip explains that Montarr is on top of Freewind Post and the path goes uphill.
+19. Verify the navigation indicator renders as an arrow graphic instead of a square/missing-glyph box.
+20. Verify the minimap button appears and left-clicking it shows/hides the addon.
+21. Right-click the minimap button and verify the quest list refreshes.
+22. Shift-drag the minimap button, reload the UI, and verify its position is remembered.
+23. Cross into another zone and confirm the list updates.
+24. Take a portal/loading screen and confirm the addon continues refreshing normally.
 
 ## Roadmap
 
 - Full quest-chain and prerequisite awareness.
 - Expanded supplemental quest database for old side quests.
+- Weekly/other recurring quest sections if needed.
 - Multi-step route hints for cliffs, caves, towers, and hard-to-reach quest givers.
 - Better distance/route selection.
 - Further navigation-arrow polish after in-game testing.
