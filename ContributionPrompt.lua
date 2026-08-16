@@ -3,7 +3,7 @@ local ADDON_NAME, ZQG = ...
 -- This is intentionally a normal web page rather than an automatic uploader.
 -- WoW addon Lua cannot submit the phase-learning export to the web itself, so
 -- the player is given a copyable destination after useful phase data is learned.
-local DEFAULT_CONTRIBUTION_URL = "https://github.com/Frostcanvas/ZoneQuestGuide/issues/new"
+local DEFAULT_CONTRIBUTION_URL = "https://forms.gle/Gnqf8kN44kDZxMs86"
 ZQG.ContributionURL = ZQG.ContributionURL or DEFAULT_CONTRIBUTION_URL
 
 local promptedThisSession = {}
@@ -98,12 +98,12 @@ message:SetText(
     "Zone Quest Guide has collected useful timeline/quest data.\n\n" ..
     "1. Run /zq export (or click Open Export below).\n" ..
     "2. Copy the anonymous phase report.\n" ..
-    "3. Submit it at the address below."
+    "3. Open the Google Form below, paste the report, and submit it."
 )
 
 local urlLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 urlLabel:SetPoint("TOPLEFT", message, "BOTTOMLEFT", 0, -14)
-urlLabel:SetText("Contribution URL")
+urlLabel:SetText("Google Form URL")
 
 local urlBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
 urlBox:SetSize(510, 26)
