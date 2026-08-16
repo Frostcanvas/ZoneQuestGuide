@@ -74,8 +74,11 @@ local function ShowQuestHintTooltip(row)
     GameTooltip:Show()
 end
 
+local cachedRows = {}
 local function ApplyLocationHints()
-    for _, row in ipairs(GetQuestRows()) do
+    cachedRows = GetQuestRows()
+
+    for _, row in ipairs(cachedRows) do
         if row.quest then
             FormatQuestRow(row)
 
@@ -86,8 +89,8 @@ local function ApplyLocationHints()
                     ShowQuestHintTooltip(self)
                 end)
 
-                row:HookScript("OnLeave", function()
-                    if GameTooltip:IsOwned(row) then
+                row:HookScript("OnLeave", function(self)
+                    if GameTooltip:IsOwned(self) then
                         GameTooltip:Hide()
                     end
                 end)
@@ -98,15 +101,23 @@ end
 
 -- Core.lua refreshes the selected quest name frequently while updating the
 -- direction arrow. Add the location badge after Core has written the name so a
--- vertical-level warning remains visible on the current target.
+-- vertical-level warning remains visible on the current target. Use the cached
+-- row list and a short throttle so this does not rescan the UI every frame.
 if targetText then
-    mainFrame:HookScript("OnUpdate", function()
+    local hintElapsed = 0
+    mainFrame:HookScript("OnUpdate", function(_, elapsed)
+        hintElapsed = hintElapsed + elapsed
+        if hintElapsed < 0.12 then
+            return
+        end
+        hintElapsed = 0
+
         local current = targetText:GetText()
         if not current or current == "" then
             return
         end
 
-        for _, row in ipairs(GetQuestRows()) do
+        for _, row in ipairs(cachedRows) do
             local quest = row.quest
             local hint = quest and GetHint(quest.id) or nil
             if hint and hint.short and current == quest.name then
