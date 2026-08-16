@@ -68,6 +68,112 @@ if directionText then
 end
 
 -- ---------------------------------------------------------------------------
+-- Quest-starter waypoint cleanup
+-- ---------------------------------------------------------------------------
+-- Available quests use a normal Blizzard user waypoint so the player can see
+-- the quest giver on the map. Once that quest is accepted, Blizzard's quest
+-- tracking should take over and the temporary starter waypoint is no longer
+-- useful. Only clear the waypoint when it still matches the accepted quest's
+-- displayed coordinates, so an unrelated waypoint placed by the player is
+-- left alone whenever the client exposes enough waypoint information to check.
+
+local function FindDisplayedQuest(questID)
+    if not questID then
+        return nil
+    end
+
+    for _, child in ipairs({ mainFrame:GetChildren() }) do
+        local quest = child.quest
+        if quest and quest.id == questID then
+            return quest
+        end
+    end
+
+    return nil
+end
+
+local function GetWaypointXY(point)
+    if not point then
+        return nil, nil
+    end
+
+    local position = point.position
+    if position then
+        if position.GetXY then
+            return position:GetXY()
+        end
+        if position.x and position.y then
+            return position.x, position.y
+        end
+    end
+
+    if point.GetXY then
+        return point:GetXY()
+    end
+
+    return point.x, point.y
+end
+
+local function WaypointMatchesQuest(quest)
+    if not quest or not quest.x or not quest.y then
+        return true
+    end
+
+    if not C_Map or not C_Map.GetUserWaypoint then
+        return true
+    end
+
+    local ok, point = pcall(C_Map.GetUserWaypoint)
+    if not ok or not point then
+        return false
+    end
+
+    local mapID = C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player") or nil
+    if point.uiMapID and mapID and point.uiMapID ~= mapID then
+        return false
+    end
+
+    local x, y = GetWaypointXY(point)
+    if not x or not y then
+        return true
+    end
+
+    local dx = x - quest.x
+    local dy = y - quest.y
+    return (dx * dx + dy * dy) <= 0.00000625
+end
+
+local function ClearAcceptedQuestStarterWaypoint(questID)
+    local quest = FindDisplayedQuest(questID)
+    if not quest or quest.accepted or not WaypointMatchesQuest(quest) then
+        return
+    end
+
+    if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, false)
+    end
+
+    if C_Map and C_Map.ClearUserWaypoint then
+        pcall(C_Map.ClearUserWaypoint)
+    end
+end
+
+local waypointEvents = CreateFrame("Frame")
+waypointEvents:RegisterEvent("QUEST_ACCEPTED")
+waypointEvents:SetScript("OnEvent", function(_, _, questLogIndex, questID)
+    if type(questID) ~= "number" or questID <= 0 then
+        if type(questLogIndex) == "number" and C_QuestLog and C_QuestLog.GetInfo then
+            local info = C_QuestLog.GetInfo(questLogIndex)
+            questID = info and info.questID or nil
+        end
+    end
+
+    if questID then
+        ClearAcceptedQuestStarterWaypoint(questID)
+    end
+end)
+
+-- ---------------------------------------------------------------------------
 -- Minimap button
 -- ---------------------------------------------------------------------------
 
