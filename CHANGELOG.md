@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.14 - August 16, 2026 - Available on GitHub**
+
+* **Added** account-wide map/quest learning that records the live `UiMapID`, WoW map name, faction, quest ID/name, completion support, and how the quest was observed (available, offered, accepted, active, or turned in). Unlike phase learning, this collector does not require a known Zidormi timeline, so it can discover map aliases while the player quests normally.
+
+* **Added** `/zq maps` to show the current map ID/name and recorded quest count, plus `/zq mapexport` for a copyable `ZQGMAPQUESTDATA|1` report. `/zq export` now combines the existing phase-learning report with the new map/quest block so community submissions can include both kinds of evidence without collecting character names, realms, GUIDs, guild names, or account identifiers.
+
+* **Fixed** current Midnight Quel'Thalas detection using live Retail values observed in-game. `C_Map.GetBestMapForUnit("player")` returned **2537 / Quel'Thalas** in the current Midnight world and **95 / Ghostlands** in the old Burning Crusade version. Map 2537 is now a reliable **PRESENT / Midnight Quel'Thalas** signal; map 95 remains the old **PAST / Burning Crusade Quel'Thalas** state.
+
+* **Improved** future timeline research by keeping map/quest evidence separate from curated phase requirements. A quest seen on a map is stored as evidence and is not automatically treated as map-exclusive or phase-exclusive.
+
+*The live map IDs 2537 (current Midnight Quel'Thalas) and 95 (old Ghostlands) were observed in-game. The new v0.2.14 automatic map/quest collection, `/zq maps`, `/zq mapexport`, combined `/zq export`, and automatic PRESENT/PAST display using those values still need in-game testing after updating. Verify quests are stored under the correct map when moving through the Thalassian Pass portal, and confirm existing phase learning, navigation, contribution prompts, and Wago telemetry continue to behave normally. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
 **VERSION 0.2.13 - August 16, 2026 - Available on GitHub**
 
 * **Added** direct old/current map detection for Midnight Quel'Thalas. Zone Quest Guide now treats Midnight **Silvermoon City** (`2393`) and **Eversong Woods** (`2395`) as the PRESENT timeline, while the legacy Burning Crusade Eversong/Ghostlands/Silvermoon map IDs are treated as the PAST timeline. Name fallbacks also recognize `Ghostlands`, `Ghostlands (Burning Crusade)`, `Eversong Woods (Burning Crusade)`, and the corresponding Silvermoon naming if WoW exposes them.
@@ -106,7 +120,7 @@
 
 * **Added** a copyable contribution URL field and **Open Export** button. The initial contribution page points to the ZoneQuestGuide GitHub issue form/page, and the URL is kept in one configurable addon value so it can be changed later to a Google Form/Drive-backed submission page or another community endpoint.
 
-* **Improved** reminder behavior so it does not pop up after every quest. The reminder is limited to once per zone/faction/timeline during a login session, appears after a turn-in once useful phase data exists, and can also appear after several quest pickups have already built a useful observation set.
+* **Improved** reminder behavior so it does not pop up after every quest. The reminder is limited to once per map/faction/timeline during a login session, appears after a turn-in once phase data exists, and can also appear after several quest pickups have already created a useful observation set.
 
 * **Changed** community contribution prompting to remain manual and privacy-conscious. The addon still does not upload anything automatically; the player chooses whether to export and submit the already-anonymous phase-learning report.
 
@@ -152,13 +166,13 @@
 
 * **Added** Horde/Alliance-separated learning data so multiple unquested alts can help map the same phased zone without mixing faction-specific quest observations together. The data is stored in the existing account-wide `ZoneQuestGuideDB` SavedVariable.
 
-* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that the quest belongs to the phase currently being viewed.
+* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that a quest belongs to the phase currently being viewed.
 
 * **Added** `/zq learn` to show the current map's phase-learning status and `/zq export` to open a copyable phase-data report for testing/community contributions.
 
 * **Improved** privacy of community data collection. The export intentionally contains zone IDs, faction, phase, quest IDs/names, observation counts, and phase-source information without character names, realm names, or character GUIDs.
 
-* **Changed** phase learning to be evidence-only rather than automatically rewriting the official quest-phase database. A quest observed in one timeline may still be available in another timeline under different prerequisites, so learned data should be reviewed before it becomes a curated `QuestPhaseRequirements` entry.
+* **Changed** phase learning to be evidence-only rather than automatically rewriting the official quest-phase database. A quest seen in one phase may still be available in another phase under different prerequisites, so learned data should be reviewed before it becomes a curated `QuestPhaseRequirements` entry.
 
 * **Changed** community reporting to an explicit export workflow. The WoW addon itself does not silently upload data to GitHub or another server; automatic reporting would require a separate optional companion uploader outside the addon.
 
@@ -220,7 +234,7 @@
 
   Previously, the phase framework could refresh when WoW reported phase-related changes, but it still needed a zone-specific detector or a manual `/zq phase` override to know what those phases actually meant. Zidormi's own gossip option provides a much more useful player-facing signal because the destination she offers is the opposite of the version the character is currently in.
 
-* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing the gossip window does not change the detected phase.
+* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
 
 * **Added** a **(Zidormi)** source label to the phase badge so the player can tell when the current **PAST** or **PRESENT** phase was identified from a Zidormi conversation rather than a manual override.
 
