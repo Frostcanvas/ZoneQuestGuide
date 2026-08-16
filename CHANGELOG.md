@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.13 - August 16, 2026 - Available on GitHub**
+
+* **Added** direct old/current map detection for Midnight Quel'Thalas. Zone Quest Guide now treats Midnight **Silvermoon City** (`2393`) and **Eversong Woods** (`2395`) as the PRESENT timeline, while the legacy Burning Crusade Eversong/Ghostlands/Silvermoon map IDs are treated as the PAST timeline. Name fallbacks also recognize `Ghostlands`, `Ghostlands (Burning Crusade)`, `Eversong Woods (Burning Crusade)`, and the corresponding Silvermoon naming if WoW exposes them.
+
+* **Fixed** Quel'Thalas timeline state becoming dependent on a Zidormi conversation. The live game behavior observed by the player shows that the Thalassian Pass portal itself can move the character into the old Burning Crusade area, while Zidormi's historical option also teleports the character there. Because a portal transition can happen without a gossip click, Zone Quest Guide now trusts the actual old/current map identity over a cached Zidormi session value.
+
+* **Improved** automatic timeline display in the rebuilt Midnight zones. A character standing in current Midnight Eversong Woods or Silvermoon City can now be identified as **PRESENT / Midnight Quel'Thalas** from the map alone, while entering the legacy Ghostlands/Eversong maps can identify **PAST / Burning Crusade Quel'Thalas** without requiring another Zidormi conversation.
+
+* **Improved** portal-driven phase refreshing. Player/world/zone transitions now re-run the full timeline refresh so quest filtering, phase learning, the Timeline line, and Wago phase telemetry can all see a map-derived timeline change even when no gossip option was selected.
+
+*The player confirmed in-game that current Midnight Silvermoon City leads into the rebuilt Eversong Woods and that the Thalassian Pass portal can enter the old Burning Crusade area; talking to Zidormi there can also transport the character into the old zone. The new v0.2.13 automatic PRESENT/PAST detection across those portal transitions still needs in-game verification after updating. Confirm the label changes correctly in both directions, `/zq learn` follows the detected map timeline, and no stale Zidormi state remains after using the portal. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
 **VERSION 0.2.12 - August 16, 2026 - Available on GitHub**
 
 * **Added** a central Retail timeline-zone registry covering the known Zidormi/Rhonormu world-state switches: Dustwallow Marsh/Theramore, Blasted Lands, Peak of Serenity, Silithus, Darkshore, Tirisfal Glades, Arathi Highlands, Uldum, Vale of Eternal Blossoms, and the newer Quel'Thalas switch for Eversong Woods/Ghostlands at Thalassian Pass. Silithus also recognizes Rhonormu as a valid timeline NPC.
@@ -138,7 +152,7 @@
 
 * **Added** Horde/Alliance-separated learning data so multiple unquested alts can help map the same phased zone without mixing faction-specific quest observations together. The data is stored in the existing account-wide `ZoneQuestGuideDB` SavedVariable.
 
-* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that a quest belongs to the phase currently being viewed.
+* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that the quest belongs to the phase currently being viewed.
 
 * **Added** `/zq learn` to show the current map's phase-learning status and `/zq export` to open a copyable phase-data report for testing/community contributions.
 
