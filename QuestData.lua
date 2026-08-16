@@ -114,13 +114,22 @@ ZQG.LocationHints[25874] = {
 
 ZQG.LocationHints[25873] = {
     short = "UPPER LEVEL",
-    text = "Upper level of Freewind Post - Montarr is on top of the mountain. Follow the path uphill.",
+    text = "Upper level of Freewind Post - Montarr is on top of Freewind Post. Follow the path uphill.",
 }
 
 -- Blasted Lands (UiMapID 17; 1246 is an alternate Blasted Lands UI map used
 -- by some modern map contexts). Zidormi stands near the northern border and
 -- switches the zone between the pre-Iron-Horde version (past) and the Iron
 -- Horde incursion version (present).
+local blastedLandsPhaseConfig = {
+    phases = {
+        past = "PAST / Before invasion",
+        present = "PRESENT / Iron Horde",
+    },
+}
+ZQG.TimePhaseZones[17] = blastedLandsPhaseConfig
+ZQG.TimePhaseZones[1246] = blastedLandsPhaseConfig
+
 local blastedLandsZidormi = {
     name = "Zidormi",
     x = 0.482,
@@ -130,9 +139,9 @@ ZQG.PhaseSwitchers[17] = blastedLandsZidormi
 ZQG.PhaseSwitchers[1246] = blastedLandsZidormi
 
 -- Horde Iron Horde incursion quests confirmed while testing Blasted Lands.
--- These quests require the present/Iron Horde version of the zone. If the
--- player is in the past version, PhaseGuidance.lua temporarily points the main
--- navigation HUD to Zidormi instead of sending the player to an unavailable
--- objective.
+-- These quests require the present/Iron Horde version of the zone. TimePhases
+-- can use a currently visible/active curated phase-exclusive quest as automatic
+-- evidence for the player's timeline, and PhaseGuidance can point to Zidormi if
+-- the player is known to be in the opposite timeline.
 ZQG.QuestPhaseRequirements[35745] = "present" -- Attack of the Iron Horde
 ZQG.QuestPhaseRequirements[35746] = "present" -- Under Siege
