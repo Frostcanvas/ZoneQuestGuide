@@ -5,6 +5,8 @@ local projectID = GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "X-Wago-ID")
 local analytics
 local analyticsRegistered = false
 local sentThisSession = {}
+local phaseSentCount = 0
+local mapQuestSentCount = 0
 
 local STRONG_EVIDENCE = {
     available = true,
@@ -29,6 +31,10 @@ local function PlayerFaction()
         return (UnitFactionGroup("player") or "Neutral"):lower()
     end
     return "neutral"
+end
+
+local function IsOnTaxi()
+    return UnitOnTaxi and UnitOnTaxi("player") and true or false
 end
 
 local function IsWagoAnalyticsLoaded()
@@ -90,6 +96,7 @@ local function RegisterAnalytics()
 
     if IsWagoAnalyticsLoaded() and type(analytics.Switch) == "function" then
         pcall(analytics.Switch, analytics, "phase_learning_enabled", true)
+        pcall(analytics.Switch, analytics, "map_quest_learning_enabled", true)
     end
 
     return analytics
@@ -111,7 +118,7 @@ local function SafeToken(value)
     return value
 end
 
-local function MetricName(mapID, faction, phase, questID, evidence, source)
+local function PhaseMetricName(mapID, faction, phase, questID, evidence, source)
     return table.concat({
         "phase",
         "m" .. SafeToken(mapID),
@@ -124,8 +131,24 @@ local function MetricName(mapID, faction, phase, questID, evidence, source)
     }, "_")
 end
 
+local function MapQuestMetricName(mapID, faction, questID, evidence)
+    return table.concat({
+        "mapquest",
+        "m" .. SafeToken(mapID),
+        SafeToken(faction),
+        "q" .. SafeToken(questID),
+        SafeToken(evidence),
+    }, "_")
+end
+
 local function ReportEvidence(questID, evidence, mapID)
     if type(questID) ~= "number" or questID <= 0 or not STRONG_EVIDENCE[evidence] then
+        return false
+    end
+
+    -- Available-quest scans can briefly reflect maps crossed by a flight path.
+    -- Do not turn those transient flyover maps into community phase evidence.
+    if IsOnTaxi() then
         return false
     end
 
@@ -144,6 +167,7 @@ local function ReportEvidence(questID, evidence, mapID)
 
     local faction = PlayerFaction()
     local key = table.concat({
+        "phase",
         tostring(mapID),
         faction,
         phase,
@@ -161,21 +185,72 @@ local function ReportEvidence(questID, evidence, mapID)
         return false
     end
 
-    local metric = MetricName(mapID, faction, phase, questID, evidence, source)
+    local metric = PhaseMetricName(mapID, faction, phase, questID, evidence, source)
     local ok = pcall(api.IncrementCounter, api, metric, 1)
     if not ok then
         return false
     end
 
     sentThisSession[key] = true
+    phaseSentCount = phaseSentCount + 1
     pcall(api.IncrementCounter, api, "phase_evidence_total", 1)
+    return true
+end
+
+local function ReportMapQuestEvidence(questID, evidence, mapID)
+    if type(questID) ~= "number" or questID <= 0 or not STRONG_EVIDENCE[evidence] then
+        return false
+    end
+
+    -- Map/quest crowd data should describe where a quest is actually observable,
+    -- not a continent or flyover zone temporarily reported during a taxi ride.
+    if IsOnTaxi() then
+        return false
+    end
+
+    if not IsWagoAnalyticsLoaded() then
+        return false
+    end
+
+    mapID = mapID or CurrentMapID()
+    if type(mapID) ~= "number" or mapID <= 0 then
+        return false
+    end
+
+    local faction = PlayerFaction()
+    local key = table.concat({
+        "mapquest",
+        tostring(mapID),
+        faction,
+        tostring(questID),
+        evidence,
+    }, ":")
+
+    if sentThisSession[key] then
+        return true
+    end
+
+    local api = RegisterAnalytics()
+    if not api or type(api.IncrementCounter) ~= "function" then
+        return false
+    end
+
+    local metric = MapQuestMetricName(mapID, faction, questID, evidence)
+    local ok = pcall(api.IncrementCounter, api, metric, 1)
+    if not ok then
+        return false
+    end
+
+    sentThisSession[key] = true
+    mapQuestSentCount = mapQuestSentCount + 1
+    pcall(api.IncrementCounter, api, "map_quest_evidence_total", 1)
     return true
 end
 
 local function ScanAvailableQuestLines()
     local mapID = CurrentMapID()
     local phase = GetReportablePhase(mapID)
-    if not mapID or not phase or not C_QuestLine or not C_QuestLine.GetAvailableQuestLines then
+    if IsOnTaxi() or not mapID or not phase or not C_QuestLine or not C_QuestLine.GetAvailableQuestLines then
         return
     end
 
@@ -299,7 +374,13 @@ local function WagoStatus()
     end
 
     if IsWagoAnalyticsLoaded() then
-        Print("Wago telemetry is registered for project " .. tostring(projectID) .. ". The WagoAnalytics addon is loaded; upload still depends on the player's Wago App Analytics sharing setting.")
+        Print(string.format(
+            "Wago telemetry is registered for project %s. This session queued %d phase and %d map/quest observation%s; upload still depends on the player's Wago App Analytics sharing setting.",
+            tostring(projectID),
+            phaseSentCount,
+            mapQuestSentCount,
+            mapQuestSentCount == 1 and "" or "s"
+        ))
     else
         Print("Wago project " .. tostring(projectID) .. " is configured and the shim is ready, but the WagoAnalytics addon is not loaded on this client.")
     end
@@ -320,10 +401,13 @@ SlashCmdList.ZONEQUESTGUIDE = function(msg)
 end
 
 ZQG.ReportPhaseEvidenceToWago = ReportEvidence
+ZQG.ReportMapQuestEvidenceToWago = ReportMapQuestEvidence
 ZQG.GetWagoTelemetryStatus = function()
     return {
         projectID = projectID,
         registered = analytics ~= nil,
         providerLoaded = IsWagoAnalyticsLoaded(),
+        phaseSent = phaseSentCount,
+        mapQuestSent = mapQuestSentCount,
     }
 end
