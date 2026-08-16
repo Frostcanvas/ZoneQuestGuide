@@ -68,7 +68,6 @@ local targetText = hud:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 targetText:SetPoint("BOTTOM", hud, "BOTTOM", 0, 25)
 targetText:SetWidth(310)
 targetText:SetJustifyH("CENTER")
-
 targetText:SetWordWrap(false)
 
 local detailText = hud:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -264,21 +263,6 @@ local function FormatDistance(distance)
     return string.format("%d yd", math.floor(distance + 0.5))
 end
 
-local function FormatETA(seconds)
-    if not seconds or seconds < 0 or seconds > 359999 then
-        return nil
-    end
-
-    seconds = math.floor(seconds + 0.5)
-    if seconds < 3600 then
-        return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
-    end
-
-    local hours = math.floor(seconds / 3600)
-    local minutes = math.floor((seconds % 3600) / 60)
-    return string.format("%d:%02d", hours, minutes)
-end
-
 local function UpdateDetailText()
     if not selectedQuest then
         detailText:SetText("")
@@ -290,20 +274,15 @@ local function UpdateDetailText()
         return
     end
 
+    -- Do not call GetUnitSpeed() here. On current Retail clients Blizzard can
+    -- return the player's movement speed as a secret value. Comparing or doing
+    -- arithmetic with that value from addon code can taint execution and throw
+    -- a Lua error. Distance uses map/world positions and remains useful without
+    -- requiring protected movement-speed data.
     local distance = GetDistanceYards(selectedQuest, selectedMapID)
     local distanceText = FormatDistance(distance)
-    local etaText
 
-    if distance and GetUnitSpeed then
-        local speed = GetUnitSpeed("player") or 0
-        if speed > 0.5 then
-            etaText = FormatETA(distance / speed)
-        end
-    end
-
-    if distanceText and etaText then
-        detailText:SetText(distanceText .. "  |cffaaaaaa•|r  " .. etaText)
-    elseif distanceText then
+    if distanceText then
         detailText:SetText(distanceText)
     elseif selectedQuest.accepted then
         detailText:SetText("Tracked by WoW")
