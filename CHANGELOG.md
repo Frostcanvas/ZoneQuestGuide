@@ -1,5 +1,21 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.7 - August 16, 2026 - Available on GitHub**
+
+* **Added** a Wago Analytics telemetry bridge for anonymous community phase evidence. When Zone Quest Guide is later assigned a Wago project ID and the player's Wago App has Analytics data sharing enabled, the addon can report phase-aware quest observations through the optional WagoAnalytics addon.
+
+* **Added** `/zq wago` (also `/zq telemetry`) to show whether the Wago project ID is configured and whether the WagoAnalytics bridge is active on the current client.
+
+* **Changed** automatic Wago reporting to use only stronger timeline evidence: quests WoW reports as available in the current phase, quests actually offered by an NPC, active quests shown by an NPC, and quests turned in in that phase. Accepted-quest map scans are deliberately excluded because an accepted quest can remain in the quest log after the player changes timelines and therefore is not reliable proof that the quest exists in both versions.
+
+* **Improved** community-data privacy by limiting Wago metric keys to map ID, faction, phase, quest ID, evidence type, and whether the phase came from Zidormi or curated automatic detection. Character names, realm names, guild names, GUIDs, and manual phase overrides are not sent by this bridge.
+
+* **Changed** the addon metadata to treat WagoAnalytics as an optional dependency. Zone Quest Guide continues to work normally without the Wago App or WagoAnalytics installed.
+
+*The Wago telemetry bridge is prepared but is not active yet because Zone Quest Guide has not been published on Wago and therefore does not yet have an `X-Wago-ID`. In-game testing is still required after a Wago project is created, Analytics is enabled for that project, the project ID is added to the TOC, and the Wago App is configured for Analytics data sharing. Wago is not yet listed as an available distribution platform.*
+
+---
+
 **VERSION 0.2.6 - August 16, 2026 - Available on GitHub**
 
 * **Added** a contribution reminder for phase-learning data. After Zone Quest Guide has collected useful quest observations in a known historical timeline, it can now show a small **Help improve Zone Quest Guide** window reminding the player to run `/zq export`, copy the anonymous phase report, and submit it through the listed contribution page.
