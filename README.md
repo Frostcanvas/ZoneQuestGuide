@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.20  
+**Version:** 0.2.21  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone, points the player toward the next useful target, and learns anonymous map/quest and timeline evidence while the player quests.
@@ -80,6 +80,15 @@ Retail testing confirmed Tirisfal uses separate live maps across the Zidormi swi
 
 Version 0.2.20 adds direct map-derived Tirisfal detection so map `2070` can identify PRESENT and map `18` can identify PAST without requiring a new Zidormi conversation first. Map `1247` remains registered as an alternate Tirisfal context but is not assigned a phase until its live role is observed.
 
+### Live-confirmed Uldum maps
+
+Retail testing confirmed Uldum also uses separate live maps across its Zidormi switch:
+
+- `1527 / Uldum` was observed in **PRESENT / N'Zoth assaults** while Zidormi offered **"Can you show me what Uldum was like during the time of the Cataclysm?"**.
+- After selecting that historical option, the live map changed to `249 / Uldum`. The main timeline line showed **PAST / Cataclysm Uldum** after Zidormi was reopened, and Zidormi offered **"Can you return me to the present time?"**.
+
+The recording also caught a stale diagnostic moment where `/zq check` reported map `249` as PRESENT before the new map's gossip state had refreshed. Version 0.2.21 fixes that by treating `1527` as direct PRESENT evidence and `249` as direct PAST evidence. Uldum-related maps `1330` and `1571` remain registered but unclassified until their live role is observed.
+
 ### Live-confirmed Arathi Highlands behavior
 
 Current Retail testing has now covered all three useful Arathi states:
@@ -150,6 +159,8 @@ Character names, realms, guild names, GUIDs, account identifiers, quest names, a
 - `/zq wago` — show Wago bridge status and this UI session's phase/map-quest queued counts.
 - `/zq telemetry` — alias for `/zq wago`.
 
+The Uldum test recording confirmed in-game that WagoAnalytics was loaded and that the session counters increased while the character generated quest/timeline evidence: phase observations rose from `3` to `9`, and map/quest observations rose from `29` to `32`. That confirms the addon is queuing evidence through the loaded Wago client. It does **not** by itself confirm server/dashboard receipt of the new counters.
+
 Wago upload still depends on the player's Wago App Analytics-sharing setting. No downloadable Wago release has been published yet, so **GitHub remains the only listed distribution platform**.
 
 ## Navigation HUD
@@ -184,7 +195,7 @@ Quests with meaningful reward choices remain open for manual selection. Holding 
 
 ## GitHub ZIP packages
 
-GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.20.zip`.
+GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.21.zip`.
 
 ## Install
 
@@ -198,22 +209,22 @@ GitHub's built-in **Code -> Download ZIP** is a source archive and will still us
 
 WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Map/quest learning records evidence, not automatic proof that a quest belongs exclusively to one map or timeline. Wago counters are aggregated evidence and do not replace review of local/manual exports.
 
-## In-game/test plan for v0.2.20
+## In-game/test plan for v0.2.21
 
-1. Update to v0.2.20 and `/reload` in Tirisfal Glades.
-2. In the current/post-Lordaeron state, run `/zq check` before talking to Zidormi. Map `2070` should report **PRESENT / After Battle for Lordaeron (detected)**.
-3. Switch to the old Tirisfal state and run `/zq check` before reopening Zidormi. Map `18` should report **PAST / Before Battle for Lordaeron (detected)**.
-4. Return to the present and confirm the label flips back to PRESENT without retaining stale Zidormi state.
-5. Confirm map `1247`, if encountered, is not automatically assigned a phase until its role is actually observed.
-6. Continue verifying the v0.2.19 Arathi handler: `2372` should show PRESENT, while map `14` should switch between FOURTH WAR and PAST based on Zidormi's destination set/selection.
-7. With WagoAnalytics loaded, generate a strong quest observation and verify the map/quest session count increases; then confirm the counters reach the Wago development dashboard.
+1. Update to v0.2.21 and `/reload` in Uldum.
+2. In the N'Zoth/current state, run `/zq check` **before** talking to Zidormi. Map `1527` should report **PRESENT / N'Zoth assaults (detected)**.
+3. Switch to Cataclysm Uldum and run `/zq check` **before** reopening Zidormi. Map `249` should report **PAST / Cataclysm Uldum (detected)** instead of briefly showing PRESENT.
+4. Return to the present and confirm map `1527` flips back to PRESENT without retaining stale session state.
+5. Continue the v0.2.20 Tirisfal check: `2070` should be PRESENT and `18` should be PAST before talking to Zidormi.
+6. Continue verifying Arathi's three-state handler: `2372` should show PRESENT, while map `14` should switch between FOURTH WAR and PAST based on Zidormi's destination set/selection.
+7. With WagoAnalytics loaded, continue generating strong quest evidence and confirm the session counters increase; then separately check the Wago development dashboard for the new `mapquest_m...` and `map_quest_evidence_total` counters.
 8. Continue checking `/zq mapexport` and `/zq export` for intact tab-separated headers and quest names.
 
 ## Roadmap
 
 - Use collected map/quest associations to discover more Retail map aliases automatically.
 - Validate remaining Zidormi/Rhonormu timeline zones in-game, especially Silithus and Darkshore.
-- Identify the live role of alternate timeline-related map IDs such as Tirisfal `1247`.
+- Identify the live role of alternate timeline-related map IDs such as Tirisfal `1247` and Uldum `1330`/`1571`.
 - Review Wago map/quest telemetry volume/cardinality before the first public Wago release.
 - Automate review/import of trusted Google Form submissions.
 - Expand curated phase-exclusive quest mappings and supplemental quest-chain coverage.
