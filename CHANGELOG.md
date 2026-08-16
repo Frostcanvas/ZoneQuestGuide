@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.18 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the diagnostic `/zq phase` and `/zq maps` commands falling through to the core addon's default show/hide action on clients where the older chain of slash-command wrappers did not reach the intended handler. A final diagnostic router now loads after the other modules and intercepts the testing commands before they can toggle the main panel.
+
+* **Added** `/zq mapid` as a short replacement for the long Blizzard `/run C_Map.GetBestMapForUnit(...)` test command. It prints the live UiMapID and map name directly in chat.
+
+* **Added** `/zq check` (and `/zq debug`) to print the current map ID/name, timeline and detection source, local learned quest count, and current-session Wago phase/map-quest counts in one line. This makes timeline testing much easier when comparing the two sides of a Zidormi switch.
+
+* **Improved** diagnostic safety by handling an unknown timeline/source without trying to concatenate a missing value, while leaving phase-changing commands such as `/zq phase auto`, `/zq phase past`, and `/zq phase present` on the existing phase handler.
+
+*The player observed in-game that the previous `/zq phase` and `/zq maps` diagnostics could simply open/close the Zone Quest Guide window instead of printing their status. The new v0.2.18 final diagnostic router and `/zq check` command have not yet been tested in World of Warcraft. After updating and `/reload`, verify `/zq check`, `/zq phase`, `/zq maps`, and `/zq mapid` print chat output without toggling the panel, and verify normal commands such as `/zq show`, `/zq hide`, `/zq arrow`, and `/zq options` still pass through correctly. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.17 - August 16, 2026 - Available on GitHub**
 
 * **Added** automatic anonymous Wago Analytics reporting for strong map/quest observations while players use Zone Quest Guide normally. When WagoAnalytics is available, observations that a quest is **available**, **offered**, **active**, or **turned in** can now increment a map/quest counter containing the live map ID, faction, quest ID, and evidence type even when no Zidormi timeline is known.
@@ -272,7 +286,7 @@
 
 * **Improved** Blasted Lands phase handling based on the in-game Zidormi wording observed during testing. If Zidormi offers **"Take me back to the present."**, Zone Quest Guide treats the current version as **PAST**. If Zidormi instead offers to show the zone **before** an invasion/event or otherwise travel to the past, the character is currently in the **PRESENT** version.
 
-  Previously, the phase framework could refresh when WoW reported phase-related changes, but it still needed a zone-specific detector or a manual `/zq phase` override to know what those phases actually meant. Zidormi's own gossip option provides a much more useful player-facing signal because the destination she offers is the opposite of the version the character is currently in.
+  Previously, the phase framework could refresh when WoW reported a phase-related change, but it still needed a zone-specific detector or manual override to know which phase was actually active. Zidormi's own gossip option gives a much stronger clue because the destination she offers is the opposite of the current timeline.
 
 * **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
 
