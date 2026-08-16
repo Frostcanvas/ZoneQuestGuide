@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.5  
+**Version:** 0.2.6  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -25,6 +25,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Can redirect the navigation arrow to a timeline-switch NPC when the selected quest belongs to another historical version of the zone.
 - Learns phase/quest evidence locally while Horde and Alliance characters play in known historical phases.
 - Exports anonymous phase-learning data for community contributions.
+- Reminds players when useful phase data is ready to contribute and provides a copyable contribution URL.
 
 ## Navigation HUD
 
@@ -86,6 +87,7 @@ Commands:
 
 - `/zq learn` — show the current map's learning status and how many quests are stored for the current faction.
 - `/zq export` — open a copyable anonymous phase-learning report.
+- `/zq contribute` — open the contribution instructions and copyable submission URL.
 
 The export contains zone IDs, faction, phase, quest IDs/names, completion state, observation counts, and the type of phase signal used. It intentionally does not include character names, realm names, or character GUIDs.
 
@@ -93,7 +95,17 @@ The export contains zone IDs, faction, phase, quest IDs/names, completion state,
 
 A normal WoW addon does not have a general-purpose web uploader built into its Lua environment, so Zone Quest Guide does not silently transmit learned data to GitHub or another server.
 
-For now, community testers can run `/zq export`, copy the report, and send it with a GitHub issue or other contribution. A future Wago/community or external uploader workflow can automate collection without changing the local learning format.
+Version 0.2.6 adds a manual contribution reminder. Once useful quest data has been learned in a known timeline, the addon can show **Help improve Zone Quest Guide** with three simple steps:
+
+1. Run `/zq export` or click **Open Export**.
+2. Copy the anonymous phase report.
+3. Submit it at the contribution URL shown in the window.
+
+The reminder is intentionally limited so it does not appear after every quest. It is shown at most once per map/faction/timeline during a login session, normally after a quest turn-in once phase data exists, or after several pickups have already created a useful observation set.
+
+The initial contribution page is the ZoneQuestGuide GitHub issue submission page. The URL is kept in `ZQG.ContributionURL` so a future release can replace it with a Google Form/Drive-backed page or another community endpoint without changing the learning/export format.
+
+The reminder does **not** upload anything by itself. The player still chooses whether to copy and submit the export.
 
 ## Quest sections
 
@@ -189,6 +201,7 @@ For **Horn of the Traitor**, the guide marks the destination **UPPER LEVEL** at 
 - `/zq phase present`
 - `/zq learn` — show phase-learning status
 - `/zq export` — open the anonymous phase-data export
+- `/zq contribute` — show contribution instructions and the submission URL
 
 ## Install
 
@@ -210,20 +223,21 @@ Phase learning only records a phase association when the current historical phas
 
 Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
 
-## In-game test plan for v0.2.5
+## In-game test plan for v0.2.6
 
-1. Enter or reload in Blasted Lands without talking to Zidormi and without a currently visible curated phase-exclusive quest. Verify the line directly below **Blasted Lands** says `Timeline: UNKNOWN - talk to Zidormi before questing.`
-2. Talk to Zidormi and verify the warning changes to the correct **PRESENT / Iron Horde (Zidormi)** or **PAST / Before invasion (Zidormi)** label.
-3. Select Zidormi's timeline-switch option and close the gossip. Verify the Zone Quest Guide timeline changes to the destination phase without talking to Zidormi a second time.
-4. Run `/zq phase` immediately after switching and verify it reports the new phase.
-5. Run `/zq learn` and `/zq export` after switching and verify newly observed quests are being recorded under the new phase rather than the previous one.
-6. Repeat the switch in the opposite direction and verify both directions update correctly.
-7. Close Zidormi without choosing the timeline option and verify the addon does **not** flip the phase just because the gossip window closed.
-8. Verify the compact main-window arrow and floating navigation HUD remain positioned and functioning normally.
-9. Continue verifying the v0.2.2 secret-number fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
+1. Enter or reload in Blasted Lands and verify the v0.2.5 timeline warning/detection still behaves correctly.
+2. Confirm the active timeline with Zidormi or a known phase-exclusive quest and continue questing normally.
+3. Turn in a quest after phase-learning data exists and verify **Help improve Zone Quest Guide** appears once for that map/faction/timeline during the login session.
+4. Click **Open Export** and verify the normal phase export window opens with copyable data.
+5. Run `/zq contribute` and verify the contribution window can be reopened manually.
+6. Click **Select URL** and verify the contribution URL is highlighted for copying.
+7. Accept/turn in additional quests in the same map/faction/timeline and verify the reminder does not repeatedly interrupt the player during that session.
+8. Switch to the opposite Blasted Lands timeline and verify new phase-learning data is recorded under the new phase; the contribution reminder may appear once for that different timeline after useful data is collected.
+9. Continue verifying the v0.2.5 Zidormi switch synchronization, v0.2.2 secret-number fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
 
 ## Roadmap
 
+- Replace the temporary GitHub contribution page with a dedicated Google Form/Drive-backed submission page if desired.
 - Expand the curated phase-exclusive quest list so automatic timeline detection works across more Blasted Lands quests and other historical zones.
 - Review exported phase-learning evidence and expand the curated quest-phase map.
 - Add import/merge tooling for trusted community phase-data contributions.
