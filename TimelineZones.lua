@@ -133,7 +133,7 @@ Register({
         present = "PRESENT / The Wound",
     },
     switcher = {
-        name = "Zidormi",
+        name = "Zidormi or Rhonormu",
         x = 0.788,
         y = 0.220,
     },
