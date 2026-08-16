@@ -1,11 +1,11 @@
 # Zone Quest Guide
 
-**Version:** 0.1.3  
+**Version:** 0.1.4  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one job: when you enter a zone, show unfinished quests the client can identify and point you toward the selected quest.
 
-## What v0.1.3 does
+## What v0.1.4 does
 
 - Detects the current Retail WoW zone/map.
 - Lists unfinished accepted quests that WoW reports on that map.
@@ -13,8 +13,8 @@ Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one jo
 - Refreshes when Blizzard reports updated quest-line information.
 - Detects available quests shown by an NPC while the gossip or quest-detail window is open and remembers them for the current session.
 - Filters completed quests.
-- Sorts accepted quests first, then nearby quest starters.
-- Auto-points toward the first unfinished quest.
+- Prioritizes **AVAILABLE** quests above **IN PROGRESS** quests in the Zone Quest Guide list.
+- Auto-points to the nearest available quest first; if none are available, it falls back to an in-progress quest.
 - Lets you click a quest row to change the target.
 - Uses Blizzard super-tracking for accepted quests.
 - Uses a Blizzard user waypoint for unaccepted quest starters with coordinates.
@@ -63,15 +63,15 @@ Opening an NPC's gossip or quest-detail window can expose additional available q
 1. Enter a zone where you have unfinished quests.
 2. Verify accepted quests show as **IN PROGRESS**.
 3. Verify available quest-line starters show as **AVAILABLE**.
-4. In Thousand Needles on Horde, verify **Go Blow that Horn** appears after completing **Eminent Domain** and **Defend the Drill**.
-5. Verify the navigation indicator renders as an arrow graphic instead of a square/missing-glyph box.
-6. Verify the minimap button appears and left-clicking it shows/hides the addon.
-7. Right-click the minimap button and verify the quest list refreshes.
-8. Shift-drag the minimap button, reload the UI, and verify its position is remembered.
-9. Open an NPC with an available quest and verify the quest appears immediately in Zone Quest Guide.
-10. Click a quest row and confirm WoW creates or super-tracks a waypoint.
-11. Accept that available quest and verify the temporary quest-starter map waypoint disappears while the quest becomes **IN PROGRESS**.
-12. If you have a separate manual waypoint, verify accepting a Zone Quest Guide quest does not remove it when the client exposes enough waypoint data to distinguish them.
+4. When both statuses are present, verify **AVAILABLE** quests are listed above **IN PROGRESS** quests.
+5. With auto-point enabled, verify the addon targets the nearest **AVAILABLE** quest before any accepted quest.
+6. Accept the selected available quest and verify it changes to **IN PROGRESS** and the next available quest becomes the automatic target if one exists.
+7. Verify the navigation indicator renders as an arrow graphic instead of a square/missing-glyph box.
+8. Verify the minimap button appears and left-clicking it shows/hides the addon.
+9. Right-click the minimap button and verify the quest list refreshes.
+10. Shift-drag the minimap button, reload the UI, and verify its position is remembered.
+11. Open an NPC with an available quest and verify the quest appears immediately in Zone Quest Guide.
+12. Accept an available quest and verify the temporary quest-starter map waypoint disappears while the quest becomes **IN PROGRESS**.
 13. Turn in a quest and confirm it disappears.
 14. Cross into another zone and confirm the list updates.
 15. Take a portal/loading screen and confirm the addon continues refreshing normally.
