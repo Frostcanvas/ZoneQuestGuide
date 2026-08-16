@@ -1,5 +1,31 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.16 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** learning-export text becoming corrupted inside WoW's copy box. The previous pipe-delimited format could accidentally form WoW text-markup sequences at normal field boundaries, causing headers such as `questID|name` to split and quest names beginning with certain letters to lose characters when displayed or copied.
+
+* **Changed** both learning exports to tab-separated schema version 2: `ZQGPHASEDATA|2` and `ZQGMAPQUESTDATA|2`. The same map, faction, phase, quest, completion, evidence-count, and phase-source data is preserved without relying on pipe characters between fields.
+
+* **Improved** export field sanitizing so tabs, line breaks, and pipe characters inside individual values cannot break the tab-separated row structure.
+
+*The corrupted v1 export was reproduced in-game from the player's copied map/quest report, including a split `questID/name` header and the first letter missing from `Ritual Problems`. The v0.2.16 tab-separated fix has not yet been tested in World of Warcraft. Verify `/zq mapexport` and `/zq export` copy complete headers and quest names, and verify the Google Form preserves the v2 report correctly. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.15 - August 16, 2026 - Available on GitHub**
+
+* **Added** automatic GitHub addon packaging. Pushes to `main` now build a GitHub Actions artifact named **ZoneQuestGuide**, providing a clean download instead of relying on GitHub's automatic `ZoneQuestGuide-main.zip` source archive.
+
+* **Improved** the package layout so the generated artifact contains a top-level `ZoneQuestGuide/` addon folder and excludes repository-only `.git` and `.github` metadata.
+
+* **Added** GitHub Release packaging support. When a GitHub Release is published, the workflow builds and attaches a versioned package such as `ZoneQuestGuide-0.2.15.zip`.
+
+* **Changed** installation documentation to explain that GitHub's built-in **Code -> Download ZIP** filename cannot be customized; players should use the packaged Actions artifact or a versioned GitHub Release ZIP for the clean addon folder/name.
+
+*The GitHub Actions packaging job completed and its generated ZIP structure was inspected: it contains a top-level `ZoneQuestGuide/` folder with the addon files and bundled libraries. The packaged download has not yet been launched in World of Warcraft, so in-game package verification is still required. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.14 - August 16, 2026 - Available on GitHub**
 
 * **Added** account-wide map/quest learning that records the live `UiMapID`, WoW map name, faction, quest ID/name, completion support, and how the quest was observed (available, offered, accepted, active, or turned in). Unlike phase learning, this collector does not require a known Zidormi timeline, so it can discover map aliases while the player quests normally.
