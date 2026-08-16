@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.1.2 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the navigation arrow rendering as a small square or missing-glyph box on some WoW clients. The first version used Unicode arrow characters, but the game font being used by the addon does not reliably contain those glyphs. Zone Quest Guide now keeps the directional calculation but draws the result with a normal WoW texture instead, so the navigation indicator should display consistently.
+
+* **Added** a minimap button for faster access to Zone Quest Guide. Left-clicking the button shows or hides the main window, right-clicking refreshes the current zone's quest list, and Shift-dragging moves the button around the minimap. Its position is saved between sessions.
+
+* **Added** `/zq minimap` to hide or show the minimap button.
+
+* **Added** an addon-list icon so Zone Quest Guide uses a normal map icon instead of WoW's red question-mark placeholder in the AddOn List.
+
+*In-game testing is still required for the new arrow texture, minimap positioning, and minimap controls in this release.*
+
+---
+
 **VERSION 0.1.1 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** an issue where available quests could be missing from the Zone Quest Guide window even though the character could accept them from an NPC.
