@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.10  
+**Version:** 0.2.11  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -18,6 +18,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Supports optional **Auto Accept** and **Auto Turn-in** quest automation.
 - Supports location hints such as **UPPER LEVEL** for confusing vertical quest locations.
 - Supports historical/time-phase zones controlled by NPCs such as Zidormi.
+- Recognizes both **Blasted Lands** and **Darkshore** as Zidormi-controlled historical zones.
 - Automatically infers a timeline when WoW exposes a currently active or available quest that the curated database already knows is phase-exclusive.
 - Shows the detected timeline on its own line directly below the current zone name in the main Zone Quest Guide window.
 - Warns the player to talk to the configured timeline-switch NPC before questing when a phased zone is known but the active timeline is still unknown.
@@ -60,6 +61,8 @@ Initial Blasted Lands Horde coverage includes:
 - **Under Siege** — requires the present/Iron Horde-incursion version.
 - **Zidormi** near the northern Blasted Lands border is the configured phase switch target.
 
+Darkshore also has a configured Zidormi switch target near **48.4, 25.0**. Version 0.2.11 recognizes the old/current Darkshore split, but does not yet classify every faction-control/warfront state inside the present-era version.
+
 After the player changes to the required timeline and the guide refreshes, navigation returns to the real quest target.
 
 ## Phase learning
@@ -82,7 +85,7 @@ Data is separated by **map**, **faction**, **quest ID**, and **phase**. Because 
 
 The learner deliberately does **not** infer a timeline from a completed quest alone. A character may have completed that quest in another historical version earlier, so completion is stored as supporting information rather than proof that the quest belongs to the phase currently being viewed.
 
-The learner also does not automatically promote observations into official `QuestPhaseRequirements`. A quest seen in one phase may still be available in another phase under different prerequisites. Learned observations are evidence that can be reviewed and then added to the curated database once the phase requirement is trustworthy.
+The learner also does not automatically promote observations into official `QuestPhaseRequirements`. A quest seen in one phase may still exist in another phase under different prerequisites. Learned observations are evidence that can be reviewed and then added to the curated database once the phase requirement is trustworthy.
 
 Commands:
 
@@ -164,6 +167,17 @@ If Zone Quest Guide knows the zone supports historical versions but cannot deter
 `Timeline: UNKNOWN - talk to Zidormi before questing.`
 
 This warning is intended to keep phase-learning data clean and to prevent the guide from pretending it knows which historical version is active.
+
+### Darkshore
+
+Version 0.2.11 adds Darkshore (UiMapID 62) to the known historical-zone list. Darkshore can now show:
+
+- `PAST / Before War of the Thorns`
+- `PRESENT / After War of the Thorns`
+
+Until the timeline is known, the guide tells the player to talk to Zidormi before questing. Zidormi is configured near **48.4, 25.0**. Her normal option to show Darkshore before the battle is treated as evidence that the player is currently in the present-era version; after switching to the old version, the return-to-present option identifies the player as being in the past version.
+
+This first Darkshore implementation distinguishes the Zidormi old/current timeline. It does not yet try to model every Battle for Darkshore warfront ownership or campaign state that can exist inside the current-era zone.
 
 ### Zidormi detection
 
@@ -249,22 +263,22 @@ Phase learning only records a phase association when the current historical phas
 
 Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
 
-## In-game test plan for v0.2.10
+## In-game test plan for v0.2.11
 
-1. Enter or reload in Blasted Lands and verify the current timeline warning/detection still behaves correctly.
-2. Confirm the active timeline with Zidormi or a known phase-exclusive quest and continue questing normally.
-3. Run `/zq contribute` and verify the contribution window still shows the Google Form URL and the export remains copyable.
-4. On the Wago project, activate Analytics. In the Wago App, enable Analytics data sharing, link the developer account, and enable development mode for Zone Quest Guide before testing.
-5. Update the local addon to v0.2.10, reload WoW, and run `/zq wago`. Verify it reports project `EGPeM3N1` and says the real WagoAnalytics addon is loaded when that addon is present.
-6. While the timeline is known from Zidormi or curated detection, trigger stronger evidence such as viewing an offered quest, seeing an available quest line, interacting with an active quest at an NPC, or turning in a quest.
-7. Verify the Wago Analytics development dashboard receives test measurements without character names, realm names, guild names, GUIDs, or manual phase overrides.
-8. Continue verifying Zidormi switch synchronization, phase learning under the correct timeline, the secret-number navigation fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
+1. Enter or reload in Darkshore and verify the main panel now recognizes the zone as phased.
+2. Before speaking to Zidormi, verify the panel shows **Timeline: UNKNOWN - talk to Zidormi before questing.** unless a reliable timeline signal is already available.
+3. Speak to Zidormi near 48.4, 25.0 and verify the label becomes **PAST / Before War of the Thorns** or **PRESENT / After War of the Thorns** as appropriate.
+4. Select Zidormi's timeline switch option once and verify the label changes to the destination timeline without requiring a second conversation.
+5. Run `/zq learn` and verify Darkshore observations are stored under map 62 and the correct timeline after the phase is known.
+6. With Wago Analytics data sharing enabled, generate a strong Darkshore quest observation and check whether the Wago development dashboard begins receiving data.
+7. Run `/zq contribute` and verify the Google Form/manual export route still works.
+8. Continue verifying the Blasted Lands timeline logic, secret-number navigation fix, navigation distance, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
 
 ## Roadmap
 
-- Activate and validate Wago Analytics, then publish the first Zone Quest Guide Wago release when the telemetry path is ready.
+- Validate Wago Analytics data delivery, then publish the first Zone Quest Guide Wago release when the telemetry path is ready.
 - Automate review/import of trusted Google Form phase-data submissions.
-- Expand the curated phase-exclusive quest list so automatic timeline detection works across more Blasted Lands quests and other historical zones.
+- Expand the curated phase-exclusive quest list so automatic timeline detection works across more Blasted Lands, Darkshore, and other historical-zone quests.
 - Review exported phase-learning evidence and expand the curated quest-phase map.
 - Add import/merge tooling for trusted community phase-data contributions.
 - Add additional Zidormi zones and phase-switch NPC locations as they are encountered in-game.
