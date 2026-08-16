@@ -28,6 +28,8 @@ local ADDON_NAME, ZQG = ...
 ZQG.StaticQuests = ZQG.StaticQuests or {}
 ZQG.LocationHints = ZQG.LocationHints or {}
 ZQG.TimePhaseZones = ZQG.TimePhaseZones or {}
+ZQG.QuestPhaseRequirements = ZQG.QuestPhaseRequirements or {}
+ZQG.PhaseSwitchers = ZQG.PhaseSwitchers or {}
 
 -- Thousand Needles (UiMapID 64)
 -- Initial coverage for the Splithoof Heights -> Speedbarge -> Freewind Post
@@ -114,3 +116,20 @@ ZQG.LocationHints[25873] = {
     short = "UPPER LEVEL",
     text = "Upper level of Freewind Post - Montarr is on top of the mountain. Follow the path uphill.",
 }
+
+-- Blasted Lands (UiMapID 17)
+-- Zidormi stands near the northern border and switches the zone between the
+-- pre-Iron-Horde version (past) and the Iron Horde incursion version (present).
+ZQG.PhaseSwitchers[17] = {
+    name = "Zidormi",
+    x = 0.482,
+    y = 0.072,
+}
+
+-- Horde Iron Horde incursion quests confirmed while testing Blasted Lands.
+-- These quests require the present/Iron Horde version of the zone. If the
+-- player is in the past version, PhaseGuidance.lua temporarily points the main
+-- navigation HUD to Zidormi instead of sending the player to an unavailable
+-- objective.
+ZQG.QuestPhaseRequirements[35745] = "present" -- Attack of the Iron Horde
+ZQG.QuestPhaseRequirements[35746] = "present" -- Under Siege
