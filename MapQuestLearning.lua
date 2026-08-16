@@ -40,6 +40,10 @@ local function PlayerFaction()
     return "Neutral"
 end
 
+local function IsOnTaxi()
+    return UnitOnTaxi and UnitOnTaxi("player") and true or false
+end
+
 local function QuestName(questID, fallback)
     if fallback and fallback ~= "" then
         return fallback
@@ -137,10 +141,24 @@ local function RecordMapQuestEvidence(questID, name, evidence, mapID)
         end
     end
 
+    -- WagoTelemetry.lua is loaded after this module. By the time gameplay
+    -- events fire its reporter is available and can forward only the strong,
+    -- anonymous evidence types it accepts. Accepted/seen evidence remains local.
+    if ZQG.ReportMapQuestEvidenceToWago then
+        ZQG.ReportMapQuestEvidenceToWago(questID, evidence, mapID)
+    end
+
     return true
 end
 
 local function ScanMapQuestEvidence()
+    -- WoW can report parent/flyover maps while the player is on a flight path.
+    -- Avoid teaching the local database that quests belong to maps merely crossed
+    -- in transit; strong NPC/turn-in evidence can still be recorded after landing.
+    if IsOnTaxi() then
+        return
+    end
+
     local mapID = CurrentMapID()
     if not mapID then
         return
