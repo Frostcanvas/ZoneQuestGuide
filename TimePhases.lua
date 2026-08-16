@@ -272,12 +272,13 @@ function ZQG.GetTimePhaseKey(mapID)
 
     local detected = DetectConfiguredPhase(mapID)
     if detected then
+        lastQuestPhaseEvidence[mapID] = nil
         return detected, "detected"
     end
 
     local questDetected = DetectQuestEvidencePhase(mapID)
     if questDetected then
-        return questDetected, "quest"
+        return questDetected, "detected"
     end
 
     return nil, "auto"
@@ -351,9 +352,10 @@ local function GetPhaseDisplay(mapID)
         return label .. " (manual)"
     elseif source == "zidormi" then
         return label .. " (Zidormi)"
-    elseif source == "quest" then
-        return label .. " (quest detected)"
     elseif source == "detected" then
+        if lastQuestPhaseEvidence[mapID] then
+            return label .. " (quest detected)"
+        end
         return label .. " (detected)"
     elseif source == "auto" then
         return label .. " (auto)"
@@ -514,7 +516,7 @@ SlashCmdList.ZONEQUESTGUIDE = function(msg)
         local shown = phaseKey and phaseKey:upper() or "UNKNOWN"
         local evidence = mapID and lastQuestPhaseEvidence[mapID] or nil
         local evidenceText = ""
-        if source == "quest" and evidence then
+        if source == "detected" and evidence then
             evidenceText = " using " .. (evidence.name or ("quest " .. tostring(evidence.questID)))
         end
         Print("Current timeline: " .. shown .. " (" .. source .. ")" .. evidenceText .. ". Use /zq phase auto, /zq phase past, or /zq phase present.")
