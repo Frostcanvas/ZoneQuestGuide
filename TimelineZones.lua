@@ -4,11 +4,10 @@ ZQG.TimePhaseZones = ZQG.TimePhaseZones or {}
 ZQG.PhaseSwitchers = ZQG.PhaseSwitchers or {}
 
 -- Central registry for Zidormi/Rhonormu timeline locations. WoW can expose
--- several UiMapIDs for the same named outdoor zone (Darkshore is a notable
--- example), so the registry supports both known map IDs and live map/subzone
--- name matching. This lets timeline warnings appear before the player talks to
--- the switch NPC instead of only after a gossip interaction creates session
--- state for an otherwise-unregistered alternate map.
+-- several UiMapIDs for the same named outdoor zone, so the registry supports
+-- known map IDs plus live map/subzone name matching. Some timelines (notably
+-- Midnight Quel'Thalas) use separate old/new maps, which also lets the map
+-- itself become a reliable phase signal without requiring a Zidormi talk first.
 local byMapID = {}
 local byName = {}
 local dynamicallyInjected = {}
@@ -242,19 +241,40 @@ Register({
     },
 })
 
--- Midnight added a Zidormi at Thalassian Pass who restores the Burning Crusade
--- versions of Eversong Woods/Ghostlands. The switch NPC is in the Eastern
--- Plaguelands, so these zone entries intentionally have no local x/y waypoint;
--- the UI can still warn the player to visit Zidormi at Thalassian Pass.
+-- Midnight rebuilt Eversong Woods as UiMapID 2395 and Silvermoon City as 2393.
+-- The legacy Burning Crusade maps remain separate (Eversong/Ghostlands and old
+-- Silvermoon map IDs below). The player confirmed in-game that the visible
+-- Thalassian Pass portal can move directly into the legacy area and that the
+-- Zidormi gossip option also teleports there. Because old/current are separate
+-- maps, use the live map identity as stronger evidence than cached gossip state.
 local quelthalas = Register({
     key = "quelthalas",
     names = {
         "Eversong Woods",
+        "Silvermoon City",
         "Ghostlands",
         "Eversong Woods (Burning Crusade)",
         "Ghostlands (Burning Crusade)",
+        "Silvermoon City (Burning Crusade)",
     },
-    mapIDs = { 94, 95, 1267, 1268 },
+    mapIDs = { 94, 95, 1267, 1268, 1269, 2393, 2395 },
+    phaseByMapID = {
+        [94] = "past",
+        [95] = "past",
+        [1267] = "past",
+        [1268] = "past",
+        [1269] = "past",
+        [2393] = "present",
+        [2395] = "present",
+    },
+    phaseByName = {
+        ["eversong woods"] = "present",
+        ["silvermoon city"] = "present",
+        ["ghostlands"] = "past",
+        ["eversong woods (burning crusade)"] = "past",
+        ["ghostlands (burning crusade)"] = "past",
+        ["silvermoon city (burning crusade)"] = "past",
+    },
     phases = {
         past = "PAST / Burning Crusade Quel'Thalas",
         present = "PRESENT / Midnight Quel'Thalas",
@@ -282,6 +302,36 @@ local function FindDefinition(mapID)
     local mapName = Normalize(CurrentMapName(mapID))
     if mapName and byName[mapName] then
         return byName[mapName], false
+    end
+
+    return nil
+end
+
+local function DetectDefinitionPhase(definition, mapID)
+    if not definition or not mapID then
+        return nil
+    end
+
+    if definition.phaseByMapID then
+        local phase = definition.phaseByMapID[mapID]
+        if phase then
+            return tostring(phase):lower()
+        end
+    end
+
+    if definition.phaseByName then
+        local mapName = Normalize(CurrentMapName(mapID))
+        local phase = mapName and definition.phaseByName[mapName] or nil
+        if phase then
+            return tostring(phase):lower()
+        end
+    end
+
+    if type(definition.detectPhase) == "function" then
+        local ok, phase = pcall(definition.detectPhase, mapID)
+        if ok and phase and phase ~= "" then
+            return tostring(phase):lower()
+        end
     end
 
     return nil
@@ -370,7 +420,7 @@ local function DefinitionForCurrentNPC()
     end
 
     -- The Midnight Quel'Thalas switch is physically in Eastern Plaguelands,
-    -- while the affected timeline zones are Eversong Woods/Ghostlands.
+    -- while the affected old/current maps are Eversong/Ghostlands/Silvermoon.
     if Normalize(npcName) == "zidormi"
         and Normalize(CurrentMapName(mapID)) == "eastern plaguelands" then
         local subzone = Normalize(CurrentSubzoneName()) or ""
@@ -422,6 +472,14 @@ if originalGetTimePhaseKey then
         end
 
         local definition = mapID and FindDefinition(mapID) or nil
+
+        -- When old/current are distinct maps, trust the current map over a
+        -- session value that might have been set before a portal transition.
+        local mapDetected = DetectDefinitionPhase(definition, mapID)
+        if mapDetected then
+            return mapDetected, "detected"
+        end
+
         local sessionPhase = definition and sessionPhaseByZoneKey[definition.key] or nil
         if sessionPhase then
             return sessionPhase, "zidormi"
@@ -554,6 +612,17 @@ events:SetScript("OnEvent", function(_, event)
         pendingSwitch = nil
     end
 
+    -- Portal-driven timelines can change maps without any gossip selection.
+    -- Re-run the full phase refresh on world/zone changes so filtering, learning,
+    -- the Timeline line, and telemetry all see the new map-derived phase.
+    if event == "PLAYER_ENTERING_WORLD"
+        or event == "ZONE_CHANGED_NEW_AREA"
+        or event == "ZONE_CHANGED"
+        or event == "UNIT_PHASE" then
+        C_Timer.After(0.10, RefreshTimelineState)
+        return
+    end
+
     EnsureCurrentMapRegistration()
     if ZQG.RefreshTimelineStatus then
         C_Timer.After(0.10, ZQG.RefreshTimelineStatus)
@@ -570,5 +639,9 @@ end
 ZQG.GetRegisteredTimelinePhase = function(mapID)
     mapID = mapID or CurrentMapID()
     local definition = mapID and FindDefinition(mapID) or nil
+    local mapDetected = DetectDefinitionPhase(definition, mapID)
+    if mapDetected then
+        return mapDetected
+    end
     return definition and sessionPhaseByZoneKey[definition.key] or nil
 end
