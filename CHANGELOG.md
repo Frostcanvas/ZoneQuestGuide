@@ -1,5 +1,21 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.5 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** timeline switching that could remain on the previous Blasted Lands phase until the player talked to Zidormi again. The earlier implementation primarily waited for WoW to report a phase-transition event after the Zidormi interaction; the player's in-game screenshots and recordings showed that this was not reliably updating the addon immediately after the switch.
+
+* **Added** an explicit phased-zone warning directly below the current zone name when Zone Quest Guide knows the zone has historical versions but cannot yet identify the active one: **Timeline: UNKNOWN - talk to Zidormi before questing.** This is intended to make the phase-learning requirement clear before the player starts collecting quest observations in that zone.
+
+* **Improved** Zidormi synchronization by watching the actual timeline gossip option selected by the player. When the configured Zidormi switch option is chosen, Zone Quest Guide now updates its session timeline to the destination phase and refreshes the timeline label, phase filters, learning state, and navigation again after the world state has had a short moment to settle.
+
+* **Changed** closing Zidormi without selecting the timeline-switch option to remain non-destructive. A plain gossip close does not flip the recorded timeline; only the recognized switch selection does.
+
+* **Improved** compatibility with the existing v0.2.4 Timeline line by reusing that line directly below the zone name rather than adding a second phase label.
+
+*The behavior that motivated this release was observed in-game: the timeline label appeared after talking to Zidormi, and after changing phases the addon could require another Zidormi conversation before its displayed timeline caught up. v0.2.5 still needs in-game testing to confirm both switch directions update immediately, the UNKNOWN warning appears before phase confirmation, closing Zidormi without switching does not change phase, and phase-learning data begins recording under the new phase after a switch.*
+
+---
+
 **VERSION 0.2.4 - August 16, 2026 - Available on GitHub**
 
 * **Added** automatic timeline detection from curated phase-exclusive quests. When WoW reports a known phase-specific quest as active on the current map or as an available quest-line starter, Zone Quest Guide can use that live quest evidence to identify the historical version without requiring a new Zidormi conversation every session.
@@ -10,7 +26,7 @@
 
 * **Improved** phase learning so a curated quest-based detector can provide the reliable phase signal needed to record other live quest evidence. This lets the account-wide Horde/Alliance learning database continue gathering useful data even when the player has not spoken to Zidormi during the current login session.
 
-* **Changed** quest-based timeline inference to stay conservative. Manual overrides and Zidormi remain stronger signals, and if curated live quest evidence points to conflicting phases at the same time, Zone Quest Guide does not guess from that quest evidence.
+* **Changed** quest-based timeline inference to stay conservative. Manual overrides and Zidormi remain stronger signals, and if curated live quest evidence points to conflicting phases at the same time, Zone QuestGuide does not guess from that quest evidence.
 
 *In-game testing is still required for the new automatic quest-based detector and Timeline line. In PRESENT Blasted Lands, reload with **Under Siege** or **Attack of the Iron Horde** active without first talking to Zidormi and verify the panel reports **PRESENT / Iron Horde (quest detected)**, `/zq phase` identifies the evidence quest, phase learning records under PRESENT, and the existing navigation UI remains positioned correctly.*
 
@@ -86,7 +102,7 @@
 
 * **Added** automatic Zidormi phase detection for historical-version zones. When the player talks to Zidormi, Zone Quest Guide now reads the gossip option she is offering and uses that as a strong clue for which version of the zone the character is currently standing in.
 
-* **Improved** Blasted Lands phase handling based on the in-game Zidormi wording observed during testing. If Zidormi offers **"Take me back to the present."**, Zone Quest Guide treats the current version as **PAST**. If Zidormi instead offers to show the zone **before** an invasion/event or otherwise travel to the past, the addon treats the current version as **PRESENT**.
+* **Improved** Blasted Lands phase handling based on the in-game Zidormi wording observed during testing. If Zidormi offers **"Take me back to the present."**, Zone Quest Guide treats the current version as **PAST**. If Zidormi instead offers to show the zone **before** an invasion/event or otherwise travel to the past, the character is currently in the **PRESENT** version.
 
   Previously, the phase framework could refresh when WoW reported phase-related changes, but it still needed a zone-specific detector or a manual `/zq phase` override to know what those phases actually meant. Zidormi's own gossip option provides a much more useful player-facing signal because the destination she offers is the opposite of the version the character is currently in.
 
@@ -164,7 +180,7 @@
 
 **VERSION 0.1.5 - August 16, 2026 - Available on GitHub**
 
-* **Added** location and elevation hints for quests where WoW's flat map can make an NPC look like it is on the same level as nearby quests even when it is actually above, below, inside a cave, or on another floor.
+* **Added** location and elevation hints for quests where WoW's flat 2D map can make an NPC look like it is on the same level as nearby quests even when it is actually above, below, inside a cave, or on another floor.
 
 * **Improved** **Horn of the Traitor** navigation at Freewind Post. The quest is now marked **[UPPER LEVEL]** in the Zone Quest Guide list and on the current target, and hovering the quest explains that Montarr is on top of Freewind Post and that the player should follow the path uphill.
 
