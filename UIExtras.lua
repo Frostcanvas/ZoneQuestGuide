@@ -1,10 +1,14 @@
 local ADDON_NAME, ZQG = ...
 
-local DB = ZoneQuestGuideDB
 local mainFrame = _G.ZoneQuestGuideFrame
 
 if not mainFrame then
     return
+end
+
+local function GetDB()
+    ZoneQuestGuideDB = ZoneQuestGuideDB or {}
+    return ZoneQuestGuideDB
 end
 
 -- ---------------------------------------------------------------------------
@@ -67,13 +71,6 @@ end
 -- Minimap button
 -- ---------------------------------------------------------------------------
 
-if DB.showMinimapIcon == nil then
-    DB.showMinimapIcon = true
-end
-if DB.minimapAngle == nil then
-    DB.minimapAngle = 225
-end
-
 local minimapButton = CreateFrame("Button", "ZoneQuestGuideMinimapButton", Minimap)
 minimapButton:SetSize(31, 31)
 minimapButton:SetFrameStrata("MEDIUM")
@@ -81,18 +78,18 @@ minimapButton:SetFrameLevel(8)
 minimapButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 minimapButton:RegisterForDrag("LeftButton")
 minimapButton:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+minimapButton:Hide()
 
-local icon = minimapButton:CreateTexture(nil, "BACKGROUND")
-icon:SetSize(20, 20)
-icon:SetPoint("CENTER", 0, 1)
-icon:SetTexture("Interface\\Icons\\INV_Misc_Map_01")
-
-local background = minimapButton:CreateTexture(nil, "ARTWORK")
+local background = minimapButton:CreateTexture(nil, "BACKGROUND")
 background:SetSize(20, 20)
 background:SetPoint("CENTER", 0, 1)
 background:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
 background:SetVertexColor(0.1, 0.1, 0.1, 0.65)
-background:SetDrawLayer("ARTWORK", -1)
+
+local icon = minimapButton:CreateTexture(nil, "ARTWORK")
+icon:SetSize(20, 20)
+icon:SetPoint("CENTER", 0, 1)
+icon:SetTexture("Interface\\Icons\\INV_Misc_Map_01")
 
 local border = minimapButton:CreateTexture(nil, "OVERLAY")
 border:SetSize(53, 53)
@@ -104,6 +101,7 @@ local function UpdateMinimapPosition()
         return
     end
 
+    local DB = GetDB()
     local radius = (math.max(Minimap:GetWidth(), Minimap:GetHeight()) / 2) + 8
     local angle = math.rad(DB.minimapAngle or 225)
 
@@ -118,6 +116,8 @@ local function UpdateMinimapPosition()
 end
 
 local function UpdateMinimapVisibility()
+    local DB = GetDB()
+
     if DB.showMinimapIcon == false then
         minimapButton:Hide()
     else
@@ -126,7 +126,22 @@ local function UpdateMinimapVisibility()
     end
 end
 
+local function InitializeMinimapButton()
+    local DB = GetDB()
+
+    if DB.showMinimapIcon == nil then
+        DB.showMinimapIcon = true
+    end
+    if DB.minimapAngle == nil then
+        DB.minimapAngle = 225
+    end
+
+    UpdateMinimapVisibility()
+end
+
 minimapButton:SetScript("OnClick", function(_, button)
+    local DB = GetDB()
+
     if button == "RightButton" then
         if ZQG.Refresh then
             ZQG.Refresh()
@@ -162,6 +177,7 @@ minimapButton:SetScript("OnDragStart", function(self)
         cursorX = cursorX / scale
         cursorY = cursorY / scale
 
+        local DB = GetDB()
         DB.minimapAngle = math.deg(math.atan2(cursorY - my, cursorX - mx))
         UpdateMinimapPosition()
     end)
@@ -184,7 +200,16 @@ minimapButton:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
 
-UpdateMinimapVisibility()
+local initEvents = CreateFrame("Frame")
+initEvents:RegisterEvent("ADDON_LOADED")
+initEvents:SetScript("OnEvent", function(self, _, addonName)
+    if addonName ~= ADDON_NAME then
+        return
+    end
+
+    InitializeMinimapButton()
+    self:UnregisterEvent("ADDON_LOADED")
+end)
 
 -- Extend the existing /zq command without replacing any of Core.lua's normal
 -- commands.
@@ -193,6 +218,7 @@ SlashCmdList.ZONEQUESTGUIDE = function(msg)
     local command = (msg or ""):lower():match("^%s*(.-)%s*$")
 
     if command == "minimap" then
+        local DB = GetDB()
         DB.showMinimapIcon = not DB.showMinimapIcon
         UpdateMinimapVisibility()
         DEFAULT_CHAT_FRAME:AddMessage(
