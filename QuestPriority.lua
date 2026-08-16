@@ -33,7 +33,7 @@ local function UpdateAutoTrackLabel()
     for _, child in ipairs({ mainFrame:GetChildren() }) do
         if child.GetObjectType and child:GetObjectType() == "CheckButton"
             and child.text and child.text.SetText then
-            child.text:SetText("Auto-point to next zone quest")
+            child.text:SetText("Auto-point to next quest (zone first)")
             return
         end
     end
