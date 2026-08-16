@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.19  
+**Version:** 0.2.20  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone, points the player toward the next useful target, and learns anonymous map/quest and timeline evidence while the player quests.
@@ -71,15 +71,24 @@ Zone Quest Guide treats `2537` as **PRESENT / Midnight Quel'Thalas** and `95` as
 
 Retail testing confirmed both **PRESENT / Iron Horde** and **PAST / Before invasion** can return `17 / Blasted Lands`. Map ID alone therefore cannot classify the Blasted Lands timeline; Zidormi or reliable phase-exclusive quest evidence is still required.
 
+### Live-confirmed Tirisfal Glades maps
+
+Retail testing confirmed Tirisfal uses separate live maps across the Zidormi switch:
+
+- `2070 / Tirisfal Glades` was observed in **PRESENT / After Battle for Lordaeron** while Zidormi offered to show the zone before the Battle for Lordaeron.
+- After selecting that historical option, `/zq check` returned `18 / Tirisfal Glades` and the addon showed **PAST / Before Battle for Lordaeron**; Zidormi then offered to return the player to the present time.
+
+Version 0.2.20 adds direct map-derived Tirisfal detection so map `2070` can identify PRESENT and map `18` can identify PAST without requiring a new Zidormi conversation first. Map `1247` remains registered as an alternate Tirisfal context but is not assigned a phase until its live role is observed.
+
 ### Live-confirmed Arathi Highlands behavior
 
-Version 0.2.19 adds a targeted three-state Arathi timeline handler based on live in-game observations:
+Current Retail testing has now covered all three useful Arathi states:
 
-- `2372 / Arathi Highlands` was observed in the current-present state while Zidormi offered to return the player to the Highlands during the Fourth War.
-- `14 / Arathi Highlands` was observed while Zidormi offered both **before the war** and **present time** destinations, identifying that state as the **FOURTH WAR / Warfront era**.
-- The older **PAST / Before Fourth War** state can be learned from the Zidormi destination the player selects even if WoW reuses an Arathi UiMapID.
+- `2372 / Arathi Highlands` = **PRESENT / Current Arathi Highlands**.
+- `14 / Arathi Highlands` can be the **FOURTH WAR / Warfront era** state when Zidormi offers both the before-war and present-time destinations.
+- `14 / Arathi Highlands` is also reused for **PAST / Before Fourth War**; in that state Zidormi offers a return to the Highlands during the Fourth War.
 
-The addon therefore does not force map `14` to mean every old Arathi state. It uses Zidormi's available destination set and the selected destination to distinguish the three states, while map `2372` is a direct current-present signal.
+The addon therefore does not treat map `14` alone as enough to distinguish the two older Arathi states. It uses Zidormi's available destinations and the selected destination to distinguish PAST from FOURTH WAR, while map `2372` is a direct current-present signal.
 
 Arathi timeline labels are:
 
@@ -175,7 +184,7 @@ Quests with meaningful reward choices remain open for manual selection. Holding 
 
 ## GitHub ZIP packages
 
-GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.19.zip`.
+GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.20.zip`.
 
 ## Install
 
@@ -189,22 +198,22 @@ GitHub's built-in **Code -> Download ZIP** is a source archive and will still us
 
 WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Map/quest learning records evidence, not automatic proof that a quest belongs exclusively to one map or timeline. Wago counters are aggregated evidence and do not replace review of local/manual exports.
 
-## In-game/test plan for v0.2.19
+## In-game/test plan for v0.2.20
 
-1. Update to v0.2.19 and `/reload` in Arathi Highlands.
-2. In current Arathi, run `/zq check`; map `2372` should report **PRESENT / Current Arathi Highlands (detected)**.
-3. Talk to Zidormi and choose **during the Fourth War**. After the transition, `/zq check` should show map `14` and **FOURTH WAR / Warfront era (Zidormi)** when Zidormi exposes both the before-war and present destinations.
-4. Choose **before the war** and verify the label becomes **PAST / Before Fourth War**. Record `/zq check` so we can see whether WoW keeps map `14` or exposes a third live UiMapID.
-5. Return to the Fourth War and then current-present state, verifying the timeline updates in both directions without keeping a stale label.
-6. Confirm `/zq phase`, `/zq maps`, `/zq mapid`, and `/zq check` still print without toggling the addon panel.
-7. With WagoAnalytics loaded, generate a strong quest observation and verify the map/quest session count increases; then confirm the new counters reach the Wago development dashboard.
+1. Update to v0.2.20 and `/reload` in Tirisfal Glades.
+2. In the current/post-Lordaeron state, run `/zq check` before talking to Zidormi. Map `2070` should report **PRESENT / After Battle for Lordaeron (detected)**.
+3. Switch to the old Tirisfal state and run `/zq check` before reopening Zidormi. Map `18` should report **PAST / Before Battle for Lordaeron (detected)**.
+4. Return to the present and confirm the label flips back to PRESENT without retaining stale Zidormi state.
+5. Confirm map `1247`, if encountered, is not automatically assigned a phase until its role is actually observed.
+6. Continue verifying the v0.2.19 Arathi handler: `2372` should show PRESENT, while map `14` should switch between FOURTH WAR and PAST based on Zidormi's destination set/selection.
+7. With WagoAnalytics loaded, generate a strong quest observation and verify the map/quest session count increases; then confirm the counters reach the Wago development dashboard.
 8. Continue checking `/zq mapexport` and `/zq export` for intact tab-separated headers and quest names.
 
 ## Roadmap
 
-- Discover the live map behavior of Arathi's pre-Fourth-War state.
 - Use collected map/quest associations to discover more Retail map aliases automatically.
-- Validate remaining Zidormi/Rhonormu timeline zones in-game.
+- Validate remaining Zidormi/Rhonormu timeline zones in-game, especially Silithus and Darkshore.
+- Identify the live role of alternate timeline-related map IDs such as Tirisfal `1247`.
 - Review Wago map/quest telemetry volume/cardinality before the first public Wago release.
 - Automate review/import of trusted Google Form submissions.
 - Expand curated phase-exclusive quest mappings and supplemental quest-chain coverage.
