@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.14  
+**Version:** 0.2.15  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -20,6 +20,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Learns **map ID + map name + quest associations even when no historical phase is known**.
 - Exports anonymous learning data for community review.
 - Provides a manual Google Form contribution path and an optional Wago Analytics bridge for stronger anonymous phase evidence.
+- Builds a clean GitHub package named **ZoneQuestGuide.zip** for development downloads and versioned release ZIPs with an internal **ZoneQuestGuide** addon folder.
 
 ## Map and quest learning
 
@@ -177,13 +178,26 @@ Quests with multiple reward choices remain open for manual selection. Holding **
 - `/zq wago`
 - `/zq telemetry`
 
+## GitHub ZIP packages
+
+GitHub's built-in **Code -> Download ZIP** button is a source-code archive. GitHub automatically names that archive after the repository and branch, so the `main` branch downloads as `ZoneQuestGuide-main.zip` and extracts to `ZoneQuestGuide-main`.
+
+Version 0.2.15 adds a packaging workflow so normal addon packages do not use that source-archive name:
+
+- Every push to `main` can produce a GitHub Actions artifact named **ZoneQuestGuide**, which downloads as `ZoneQuestGuide.zip` and contains the addon under a top-level `ZoneQuestGuide/` folder.
+- When a GitHub Release is published, the workflow also attaches a versioned package such as `ZoneQuestGuide-0.2.15.zip`.
+- The packaged addon excludes repository-only `.git`/`.github` metadata and preserves the folder name WoW expects.
+
+For normal installs, use the packaged artifact/release ZIP rather than GitHub's automatic branch source archive.
+
 ## Install
 
 1. Exit World of Warcraft.
-2. Copy the `ZoneQuestGuide` folder into `World of Warcraft/_retail_/Interface/AddOns/`.
-3. Start WoW.
-4. Enable **Zone Quest Guide** at character select.
-5. Enter the world and use `/zq` if the panel is hidden.
+2. Download a packaged **ZoneQuestGuide.zip** or versioned GitHub Release ZIP. If using GitHub's **Code -> Download ZIP** source archive instead, rename the extracted `ZoneQuestGuide-main` folder to `ZoneQuestGuide` first.
+3. Place the `ZoneQuestGuide` folder into `World of Warcraft/_retail_/Interface/AddOns/`.
+4. Start WoW.
+5. Enable **Zone Quest Guide** at character select.
+6. Enter the world and use `/zq` if the panel is hidden.
 
 ## Important limitations
 
@@ -193,15 +207,14 @@ Map/quest learning records what WoW exposes on the player's current map; it is e
 
 Phase learning only records a phase association when the historical phase is known from a reliable signal. Learned observations are not automatically promoted into official quest-phase requirements.
 
-## In-game test plan for v0.2.14
+## In-game/test plan for v0.2.15
 
-1. In current Midnight Quel'Thalas, run `/zq maps` and verify it reports map `2537 / Quel'Thalas`.
-2. Let the addon see one or more quests, then run `/zq mapexport` and confirm rows are stored under map `2537`.
-3. Use the Thalassian Pass portal into old Ghostlands and verify `/zq maps` reports map `95 / Ghostlands`.
-4. Let the addon see quests there and confirm `/zq mapexport` stores those quests separately under map `95`.
-5. Verify the Timeline line shows **PRESENT / Midnight Quel'Thalas** on map `2537` and **PAST / Burning Crusade Quel'Thalas** on map `95`.
-6. Run `/zq export` and verify both the phase block and the `ZQGMAPQUESTDATA|1` block appear.
-7. Confirm the normal quest list, navigation, Auto Accept/Turn-in, Google Form contribution flow, and Wago telemetry still behave normally.
+1. Confirm the GitHub packaging workflow completes and its development artifact downloads as **ZoneQuestGuide.zip**, not `ZoneQuestGuide-main.zip`.
+2. Extract that artifact and verify the top-level addon folder is exactly `ZoneQuestGuide` and contains `ZoneQuestGuide.toc`, the Lua modules, and bundled libraries.
+3. When the next GitHub Release is published, confirm the workflow attaches a versioned `ZoneQuestGuide-0.2.15.zip` package.
+4. Launch WoW with the packaged folder and verify Zone Quest Guide loads normally; the packaging change itself does not alter runtime addon logic.
+5. Continue the v0.2.14 map-learning test: `/zq maps` should report `2537 / Quel'Thalas` in current Midnight Quel'Thalas and `95 / Ghostlands` in the old Burning Crusade area.
+6. Verify `/zq mapexport`, combined `/zq export`, timeline detection, contribution flow, navigation, and Wago telemetry still behave normally.
 
 ## Roadmap
 
@@ -211,7 +224,6 @@ Phase learning only records a phase association when the historical phase is kno
 - Automate review/import of trusted Google Form submissions.
 - Expand curated phase-exclusive quest mappings from reviewed evidence.
 - Expand supplemental quest-chain and prerequisite coverage.
-- Add automatic GitHub release ZIP packaging.
 
 ## Release notes
 
