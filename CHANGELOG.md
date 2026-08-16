@@ -1,5 +1,25 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.3 - August 16, 2026 - Available on GitHub**
+
+* **Added** account-wide local phase learning. When Zone Quest Guide already knows the current historical version of a map from Zidormi, a configured detector, or a manual phase override, it now records live WoW quest evidence for that map and phase.
+
+* **Added** Horde/Alliance-separated learning data so multiple unquested alts can help map the same phased zone without mixing faction-specific quest observations together. The data is stored in the existing account-wide `ZoneQuestGuideDB` SavedVariable.
+
+* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that a quest belongs to the phase currently being viewed.
+
+* **Added** `/zq learn` to show the current map's phase-learning status and `/zq export` to open a copyable phase-data report for testing/community contributions.
+
+* **Improved** privacy of community data collection. The export intentionally contains zone IDs, faction, phase, quest IDs/names, observation counts, and phase-source information without character names, realm names, or character GUIDs.
+
+* **Changed** phase learning to be evidence-only rather than automatically rewriting the official quest-phase database. A quest observed in one timeline may still be available in another timeline under different prerequisites, so learned data should be reviewed before it becomes a curated `QuestPhaseRequirements` entry.
+
+* **Changed** community reporting to an explicit export workflow. The WoW addon itself does not silently upload data to GitHub or another server; automatic reporting would require a separate optional companion uploader outside the addon.
+
+*In-game testing is still required to confirm phase observations accumulate correctly across Horde and Alliance alts, `/zq export` produces copyable data, quest acceptance/turn-in evidence is recorded under the correct timeline, and no character-identifying information appears in the export.*
+
+---
+
 **VERSION 0.2.2 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** a repeated Lua error from the floating navigation HUD when Retail WoW returned `GetUnitSpeed("player")` as a secret number. The HUD was comparing that protected value to a normal number while calculating ETA, which tainted execution and produced `attempt to compare local 'speed' (a secret number value...)` from `NavigationHUD.lua`.
