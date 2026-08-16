@@ -1,5 +1,23 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.0 - August 16, 2026 - Available on GitHub**
+
+* **Added** a new floating navigation HUD inspired by the large directional arrows used by full quest-guide addons. The HUD stays on screen independently of the main Zone Quest Guide window and shows the selected quest, its current status, and a large directional arrow.
+
+* **Improved** directional navigation with a smoothly rotating drawn arrow instead of relying on Unicode arrow characters. The new HUD builds the arrow from WoW line regions, so it should avoid the missing-glyph/square problem seen with the original font-based indicator while also giving the player a much easier direction to follow at a glance.
+
+* **Added** distance and travel-time information to the floating navigation HUD. When WoW exposes enough map/world-position information for the selected quest, Zone Quest Guide estimates the remaining distance in yards. While the character is moving, it also estimates travel time from the current movement speed. Quests without usable world-position data continue to show normal tracking information instead.
+
+* **Added** **Shift-drag** positioning for the floating arrow. Its position is saved between sessions. `/zq arrow` toggles the HUD and `/zq arrow reset` restores its default position.
+
+* **Improved** navigation while using flight paths. WoW can report intermediate zone changes while a taxi flies across several maps, which could make a quest guide briefly replace the go-to destination with a quest from a zone the player was only passing over. Zone Quest Guide now keeps its floating HUD and addon-owned destination on the last stable quest while a taxi crosses into another map, then refreshes for the zone where the character actually lands.
+
+  The main quest list still uses the older Core zone-refresh behavior and may visibly change while flying. This release specifically stabilizes the navigation target and go-to waypoint so a short flyover does not steal the destination marker.
+
+*In-game testing is still required for the new floating arrow, smooth rotation, yard-distance conversion, ETA display, saved HUD position, and flight-path target hold. The existing automatic zone refresh was observed working in-game, but the new v0.2.0 navigation behavior has not yet been verified in-game.*
+
+---
+
 **VERSION 0.1.10 - August 16, 2026 - Available on GitHub**
 
 * **Added** automatic Zidormi phase detection for historical-version zones. When the player talks to Zidormi, Zone Quest Guide now reads the gossip option she is offering and uses that as a strong clue for which version of the zone the character is currently standing in.
