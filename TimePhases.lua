@@ -225,12 +225,15 @@ events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 events:RegisterEvent("ZONE_CHANGED")
 events:RegisterEvent("QUEST_LOG_UPDATE")
 events:RegisterEvent("GOSSIP_CLOSED")
-events:RegisterEvent("UNIT_PHASE")
+
+-- UNIT_PHASE has existed across many WoW clients, but keep its registration
+-- optional so a future client change cannot prevent the addon from loading.
+pcall(events.RegisterEvent, events, "UNIT_PHASE")
+
 events:SetScript("OnEvent", function()
-    -- UNIT_PHASE does not provide a universal historical-phase identifier, and
-    -- some phase switches are accompanied by quest/gossip/zone changes instead.
-    -- Treat these events as refresh hints and let the configured detector or
-    -- per-zone manual override decide which supplemental records are valid.
+    -- No single event provides a universal historical-phase identity. Treat
+    -- these events as refresh hints and let the configured detector or per-zone
+    -- manual override decide which supplemental records are valid.
     SchedulePhaseRefresh(0.15)
 end)
 
