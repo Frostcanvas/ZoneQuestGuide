@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.22 - August 16, 2026 - Available on GitHub**
+
+* **Added** supplemental quest availability rules for cases where WoW progression makes an older quest impossible to obtain. Database records can now use `blockedBy = { ... }` to hide a quest after any listed blocker quest has been completed.
+
+* **Added** `exclusiveWith = { ... }` for mutually exclusive quest routes. A supplemental quest using this rule is hidden while any listed alternate quest is active and remains hidden once that alternate quest has been completed. If an alternate route is abandoned before completion and the game allows the original route again, the supplemental quest can become eligible on a later refresh.
+
+* **Improved** the existing `prereqs = { ... }` framework by documenting the three availability rules together: every prerequisite must be completed, any completed `blockedBy` quest suppresses the record, and any active/completed `exclusiveWith` quest suppresses the record. These restrictions apply to supplemental database records only; live Blizzard-provided quests remain trusted as currently obtainable or active.
+
+* **Confirmed** from live Silithus testing that both **PAST / Before the Wound** and **PRESENT / The Wound** returned `81 / Silithus`. The existing same-map Zidormi detection correctly changed the displayed timeline from PAST to PRESENT after the switch, so Silithus map ID alone is intentionally not used as a phase classifier.
+
+*The Silithus timeline behavior above was observed in World of Warcraft. The new `blockedBy` and `exclusiveWith` filtering framework has not yet been tested in-game because no guessed quest relationships were added just to exercise the code. When a real breadcrumb or mutually exclusive pair is identified, verify the supplemental quest disappears at the correct acceptance/completion point and that normal Blizzard-provided quests remain unaffected. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.21 - August 16, 2026 - Available on GitHub**
 
 * **Added** direct Uldum timeline detection from live Retail map IDs. The player's recording showed `1527 / Uldum` in **PRESENT / N'Zoth assaults** and `249 / Uldum` in **PAST / Cataclysm Uldum**, so Zone Quest Guide can now use those map identities as stronger evidence than cached Zidormi session state.
