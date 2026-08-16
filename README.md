@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.6  
+**Version:** 0.2.8  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -25,7 +25,8 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Can redirect the navigation arrow to a timeline-switch NPC when the selected quest belongs to another historical version of the zone.
 - Learns phase/quest evidence locally while Horde and Alliance characters play in known historical phases.
 - Exports anonymous phase-learning data for community contributions.
-- Reminds players when useful phase data is ready to contribute and provides a copyable contribution URL.
+- Reminds players when useful phase data is ready to contribute and provides the ZoneQuestGuide Google Form URL.
+- Includes an optional Wago Analytics telemetry bridge for stronger anonymous phase evidence once a Wago project ID is assigned.
 
 ## Navigation HUD
 
@@ -87,25 +88,42 @@ Commands:
 
 - `/zq learn` — show the current map's learning status and how many quests are stored for the current faction.
 - `/zq export` — open a copyable anonymous phase-learning report.
-- `/zq contribute` — open the contribution instructions and copyable submission URL.
+- `/zq contribute` — open the contribution instructions and copyable Google Form URL.
 
 The export contains zone IDs, faction, phase, quest IDs/names, completion state, observation counts, and the type of phase signal used. It intentionally does not include character names, realm names, or character GUIDs.
 
 ### Community reporting
 
-A normal WoW addon does not have a general-purpose web uploader built into its Lua environment, so Zone Quest Guide does not silently transmit learned data to GitHub or another server.
+A normal WoW addon does not have a general-purpose web uploader built into its Lua environment, so the manual contribution route still requires the player to copy and submit the learned data themselves.
 
-Version 0.2.6 adds a manual contribution reminder. Once useful quest data has been learned in a known timeline, the addon can show **Help improve Zone Quest Guide** with three simple steps:
+Once useful quest data has been learned in a known timeline, the addon can show **Help improve Zone Quest Guide** with three simple steps:
 
 1. Run `/zq export` or click **Open Export**.
 2. Copy the anonymous phase report.
-3. Submit it at the contribution URL shown in the window.
+3. Open the ZoneQuestGuide Google Form, paste the report, and submit it.
 
 The reminder is intentionally limited so it does not appear after every quest. It is shown at most once per map/faction/timeline during a login session, normally after a quest turn-in once phase data exists, or after several pickups have already created a useful observation set.
 
-The initial contribution page is the ZoneQuestGuide GitHub issue submission page. The URL is kept in `ZQG.ContributionURL` so a future release can replace it with a Google Form/Drive-backed page or another community endpoint without changing the learning/export format.
+Version 0.2.8 uses this Google Form as the manual contribution destination:
+
+`https://forms.gle/Gnqf8kN44kDZxMs86`
 
 The reminder does **not** upload anything by itself. The player still chooses whether to copy and submit the export.
+
+### Wago Analytics
+
+Version 0.2.7 added an optional Wago Analytics telemetry bridge. It is designed to report only stronger anonymous phase evidence when the player has Wago Analytics available and data sharing is active.
+
+The bridge can report:
+
+- a quest WoW reports as available in the current phase;
+- a quest actually offered by an NPC;
+- an active quest shown by an NPC;
+- a quest turned in while the phase is known.
+
+Accepted-quest map scans are intentionally not sent to Wago because a quest can remain accepted after a player changes timelines. Wago metric keys are limited to map ID, faction, phase, quest ID, evidence type, and the reliable phase source. Character names, realms, guild names, GUIDs, and manual phase overrides are excluded.
+
+The Wago bridge is prepared but is not active yet because Zone Quest Guide has not yet been assigned an `X-Wago-ID`. `/zq wago` or `/zq telemetry` shows the current bridge status. Zone Quest Guide continues working normally when WagoAnalytics is unavailable.
 
 ## Quest sections
 
@@ -201,7 +219,9 @@ For **Horn of the Traitor**, the guide marks the destination **UPPER LEVEL** at 
 - `/zq phase present`
 - `/zq learn` — show phase-learning status
 - `/zq export` — open the anonymous phase-data export
-- `/zq contribute` — show contribution instructions and the submission URL
+- `/zq contribute` — show contribution instructions and the Google Form URL
+- `/zq wago` — show Wago Analytics bridge status
+- `/zq telemetry` — alias for `/zq wago`
 
 ## Install
 
@@ -223,25 +243,25 @@ Phase learning only records a phase association when the current historical phas
 
 Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
 
-## In-game test plan for v0.2.6
+## In-game test plan for v0.2.8
 
-1. Enter or reload in Blasted Lands and verify the v0.2.5 timeline warning/detection still behaves correctly.
+1. Enter or reload in Blasted Lands and verify the current timeline warning/detection still behaves correctly.
 2. Confirm the active timeline with Zidormi or a known phase-exclusive quest and continue questing normally.
-3. Turn in a quest after phase-learning data exists and verify **Help improve Zone Quest Guide** appears once for that map/faction/timeline during the login session.
-4. Click **Open Export** and verify the normal phase export window opens with copyable data.
-5. Run `/zq contribute` and verify the contribution window can be reopened manually.
-6. Click **Select URL** and verify the contribution URL is highlighted for copying.
-7. Accept/turn in additional quests in the same map/faction/timeline and verify the reminder does not repeatedly interrupt the player during that session.
-8. Switch to the opposite Blasted Lands timeline and verify new phase-learning data is recorded under the new phase; the contribution reminder may appear once for that different timeline after useful data is collected.
-9. Continue verifying the v0.2.5 Zidormi switch synchronization, v0.2.2 secret-number fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
+3. Run `/zq contribute` and verify the contribution window shows `https://forms.gle/Gnqf8kN44kDZxMs86` under **Google Form URL**.
+4. Click **Select URL** and verify the full form URL is highlighted for copying.
+5. Click **Open Export** and verify the normal phase export opens and remains copyable.
+6. Paste a test export into the Google Form and confirm the form accepts the submission.
+7. Turn in another phased quest and verify the automatic contribution reminder does not repeatedly interrupt the player within the same map/faction/timeline session.
+8. Run `/zq wago`. Until a Wago project ID is added, verify it reports that telemetry is prepared but not active yet.
+9. Continue verifying Zidormi switch synchronization, phase learning under the correct timeline, the secret-number navigation fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
 
 ## Roadmap
 
-- Replace the temporary GitHub contribution page with a dedicated Google Form/Drive-backed submission page if desired.
+- Create/publish the Wago project, enable Analytics, add the assigned `X-Wago-ID`, and test community telemetry in game.
+- Automate review/import of trusted Google Form phase-data submissions.
 - Expand the curated phase-exclusive quest list so automatic timeline detection works across more Blasted Lands quests and other historical zones.
 - Review exported phase-learning evidence and expand the curated quest-phase map.
 - Add import/merge tooling for trusted community phase-data contributions.
-- Add Wago/community reporting or an optional external companion uploader for easier community contributions.
 - Add additional Zidormi zones and phase-switch NPC locations as they are encountered in-game.
 - Expand supplemental quest-chain and prerequisite coverage.
 - Improve multi-zone route selection.
