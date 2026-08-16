@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.15  
+**Version:** 0.2.16  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -18,13 +18,13 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Recognizes known Retail Zidormi/Rhonormu historical timeline zones.
 - Learns phase/quest evidence locally when the current historical phase is known.
 - Learns **map ID + map name + quest associations even when no historical phase is known**.
-- Exports anonymous learning data for community review.
+- Exports anonymous learning data for community review using a WoW-safe tab-separated format.
 - Provides a manual Google Form contribution path and an optional Wago Analytics bridge for stronger anonymous phase evidence.
 - Builds a clean GitHub package named **ZoneQuestGuide.zip** for development downloads and versioned release ZIPs with an internal **ZoneQuestGuide** addon folder.
 
 ## Map and quest learning
 
-Version 0.2.14 adds a separate account-wide map/quest learning store in `ZoneQuestGuideDB.mapQuestLearning`.
+Version 0.2.14 added a separate account-wide map/quest learning store in `ZoneQuestGuideDB.mapQuestLearning`.
 
 Whenever WoW exposes a quest through the current map, an available quest line, an NPC gossip list, a quest-detail window, quest acceptance, or quest turn-in, Zone Quest Guide can record:
 
@@ -41,13 +41,18 @@ Commands:
 
 - `/zq maps` — show the current map ID/name and how many quests have been recorded for the current faction.
 - `/zq mapexport` — open only the map/quest learning export.
-- `/zq export` — now opens the normal phase-learning export followed by the map/quest learning block.
+- `/zq export` — open the normal phase-learning export followed by the map/quest learning block.
 
-The map export format starts with:
+### Export format
 
-`ZQGMAPQUESTDATA|1`
+Version 0.2.16 changes both learning exports to **tab-separated** fields:
 
-and contains `mapID`, `mapName`, faction, quest ID/name, and observation counts. It intentionally does not include character names, realm names, GUIDs, guild names, or account identifiers.
+- `ZQGPHASEDATA|2`
+- `ZQGMAPQUESTDATA|2`
+
+The earlier v1 format used the pipe character (`|`) between fields. WoW text controls also use pipe-prefixed sequences for text formatting, so combinations produced by normal field boundaries could be interpreted instead of copied literally. For example, a separator immediately before a field beginning with `n`, `t`, or `R` could damage the displayed/copied text. The v2 format keeps the same data but uses tabs between fields so quest names and headers remain intact when copied from the in-game export box.
+
+The exports intentionally do not include character names, realm names, GUIDs, guild names, or account identifiers.
 
 ## Historical/time phases
 
@@ -76,7 +81,7 @@ During Retail testing, WoW returned:
 - **UiMapID `2537` / `Quel'Thalas`** while standing in the current Midnight world.
 - **UiMapID `95` / `Ghostlands`** after entering the old Burning Crusade Ghostlands.
 
-Version 0.2.14 treats `2537` as a reliable **PRESENT / Midnight Quel'Thalas** signal. The existing timeline registry already treats map `95` as **PAST / Burning Crusade Quel'Thalas**.
+Zone Quest Guide treats `2537` as a reliable **PRESENT / Midnight Quel'Thalas** signal. The timeline registry treats map `95` as **PAST / Burning Crusade Quel'Thalas**.
 
 The Thalassian Pass portal can move the player into the old Burning Crusade area without selecting Zidormi gossip, while Zidormi can also teleport the player there. For this layout, the actual map identity is therefore a stronger signal than a cached conversation state.
 
@@ -182,11 +187,13 @@ Quests with multiple reward choices remain open for manual selection. Holding **
 
 GitHub's built-in **Code -> Download ZIP** button is a source-code archive. GitHub automatically names that archive after the repository and branch, so the `main` branch downloads as `ZoneQuestGuide-main.zip` and extracts to `ZoneQuestGuide-main`.
 
-Version 0.2.15 adds a packaging workflow so normal addon packages do not use that source-archive name:
+Version 0.2.15 added a packaging workflow so normal addon packages do not use that source-archive name:
 
-- Every push to `main` can produce a GitHub Actions artifact named **ZoneQuestGuide**, which downloads as `ZoneQuestGuide.zip` and contains the addon under a top-level `ZoneQuestGuide/` folder.
-- When a GitHub Release is published, the workflow also attaches a versioned package such as `ZoneQuestGuide-0.2.15.zip`.
+- Every push to `main` produces a GitHub Actions artifact named **ZoneQuestGuide**, which downloads as `ZoneQuestGuide.zip` and contains the addon under a top-level `ZoneQuestGuide/` folder.
+- When a GitHub Release is published, the workflow also attaches a versioned package such as `ZoneQuestGuide-0.2.16.zip`.
 - The packaged addon excludes repository-only `.git`/`.github` metadata and preserves the folder name WoW expects.
+
+The GitHub Actions packaging job has completed and the generated artifact structure has been inspected. The packaged addon still needs to be launched in World of Warcraft before the packaging path is considered fully in-game verified.
 
 For normal installs, use the packaged artifact/release ZIP rather than GitHub's automatic branch source archive.
 
@@ -207,14 +214,15 @@ Map/quest learning records what WoW exposes on the player's current map; it is e
 
 Phase learning only records a phase association when the historical phase is known from a reliable signal. Learned observations are not automatically promoted into official quest-phase requirements.
 
-## In-game/test plan for v0.2.15
+## In-game/test plan for v0.2.16
 
-1. Confirm the GitHub packaging workflow completes and its development artifact downloads as **ZoneQuestGuide.zip**, not `ZoneQuestGuide-main.zip`.
-2. Extract that artifact and verify the top-level addon folder is exactly `ZoneQuestGuide` and contains `ZoneQuestGuide.toc`, the Lua modules, and bundled libraries.
-3. When the next GitHub Release is published, confirm the workflow attaches a versioned `ZoneQuestGuide-0.2.15.zip` package.
-4. Launch WoW with the packaged folder and verify Zone Quest Guide loads normally; the packaging change itself does not alter runtime addon logic.
-5. Continue the v0.2.14 map-learning test: `/zq maps` should report `2537 / Quel'Thalas` in current Midnight Quel'Thalas and `95 / Ghostlands` in the old Burning Crusade area.
-6. Verify `/zq mapexport`, combined `/zq export`, timeline detection, contribution flow, navigation, and Wago telemetry still behave normally.
+1. Update to v0.2.16 and run `/zq mapexport` after the addon has observed quests whose names begin with letters such as **R**.
+2. Verify the first line is `ZQGMAPQUESTDATA|2`, the header stays on one line, and quest names such as **Ritual Problems** retain their first letter.
+3. Run `/zq export` and verify the phase block starts with `ZQGPHASEDATA|2` and the map block starts with `ZQGMAPQUESTDATA|2`.
+4. Copy the combined export into the Google Form and confirm tabs/newlines survive the copy without missing header text or quest-name letters.
+5. Continue the map-learning test: `/zq maps` should report `2537 / Quel'Thalas` in current Midnight Quel'Thalas and `95 / Ghostlands` in the old Burning Crusade area.
+6. Launch WoW from the clean GitHub Actions package and verify Zone Quest Guide loads normally from the top-level `ZoneQuestGuide` folder.
+7. Verify timeline detection, contribution flow, navigation, Auto Accept/Turn-in, and Wago telemetry continue to behave normally.
 
 ## Roadmap
 
