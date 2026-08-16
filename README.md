@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.4  
+**Version:** 0.2.5  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone and points the player toward the next useful target.
@@ -20,6 +20,8 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Supports historical/time-phase zones controlled by NPCs such as Zidormi.
 - Automatically infers a timeline when WoW exposes a currently active or available quest that the curated database already knows is phase-exclusive.
 - Shows the detected timeline on its own line directly below the current zone name in the main Zone Quest Guide window.
+- Warns the player to talk to the configured timeline-switch NPC before questing when a phased zone is known but the active timeline is still unknown.
+- Updates the timeline after the player selects Zidormi's switch option instead of waiting for a second Zidormi conversation.
 - Can redirect the navigation arrow to a timeline-switch NPC when the selected quest belongs to another historical version of the zone.
 - Learns phase/quest evidence locally while Horde and Alliance characters play in known historical phases.
 - Exports anonymous phase-learning data for community contributions.
@@ -121,7 +123,11 @@ or:
 
 `Timeline: PAST / Before invasion (Zidormi)`
 
-If Zone Quest Guide knows the zone supports historical versions but cannot determine the current one, it shows `Timeline: UNKNOWN (auto)` rather than pretending to know.
+If Zone Quest Guide knows the zone supports historical versions but cannot determine the current one, v0.2.5 shows an explicit warning such as:
+
+`Timeline: UNKNOWN - talk to Zidormi before questing.`
+
+This warning is intended to keep phase-learning data clean and to prevent the guide from pretending it knows which historical version is active.
 
 ### Zidormi detection
 
@@ -129,6 +135,8 @@ When the player talks to **Zidormi**, the addon examines her gossip option as a 
 
 - If Zidormi offers **"Take me back to the present."**, the character is currently in the **PAST** version.
 - If she offers to show the zone **before** an invasion/event or otherwise travel to the past, the character is currently in the **PRESENT** version.
+
+Version 0.2.5 also watches which Zidormi timeline option the player actually selects. After that switch option is chosen, Zone Quest Guide updates its session timeline to the destination phase and refreshes again shortly afterward so the label, phase filtering, phase learning, and navigation can follow the new world state without requiring the player to reopen Zidormi.
 
 Manual per-zone overrides remain available when automatic identification is not reliable:
 
@@ -202,16 +210,17 @@ Phase learning only records a phase association when the current historical phas
 
 Distance depends on map/world-position information supplied by WoW, so some targets may show tracking information without a numeric distance.
 
-## In-game test plan for v0.2.4
+## In-game test plan for v0.2.5
 
-1. While in PRESENT Blasted Lands with **Under Siege** or **Attack of the Iron Horde** active/available, reload the UI **without talking to Zidormi first**.
-2. Verify the main Zone Quest Guide panel shows `Timeline: PRESENT / Iron Horde (quest detected)` directly below the Blasted Lands line.
-3. Run `/zq phase` and verify it reports PRESENT and names the quest used as evidence when a quest supplied the detection.
-4. Run `/zq learn` and verify phase learning records new quest evidence under PRESENT even though Zidormi was not used in that session.
-5. Talk to Zidormi and verify the timeline display switches to the stronger `(Zidormi)` source.
-6. Switch to PAST and verify the display changes to `PAST / Before invasion` after WoW reports the phase transition.
-7. Verify the compact main-window arrow is still positioned correctly below the new timeline line and the floating navigation HUD continues working.
-8. Continue verifying the v0.2.2 secret-number fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
+1. Enter or reload in Blasted Lands without talking to Zidormi and without a currently visible curated phase-exclusive quest. Verify the line directly below **Blasted Lands** says `Timeline: UNKNOWN - talk to Zidormi before questing.`
+2. Talk to Zidormi and verify the warning changes to the correct **PRESENT / Iron Horde (Zidormi)** or **PAST / Before invasion (Zidormi)** label.
+3. Select Zidormi's timeline-switch option and close the gossip. Verify the Zone Quest Guide timeline changes to the destination phase without talking to Zidormi a second time.
+4. Run `/zq phase` immediately after switching and verify it reports the new phase.
+5. Run `/zq learn` and `/zq export` after switching and verify newly observed quests are being recorded under the new phase rather than the previous one.
+6. Repeat the switch in the opposite direction and verify both directions update correctly.
+7. Close Zidormi without choosing the timeline option and verify the addon does **not** flip the phase just because the gossip window closed.
+8. Verify the compact main-window arrow and floating navigation HUD remain positioned and functioning normally.
+9. Continue verifying the v0.2.2 secret-number fix, navigation distance, timeline-switch arrow, Auto Accept, Auto Turn-in, dailies, and flight-path target hold.
 
 ## Roadmap
 
