@@ -1,11 +1,11 @@
 # Zone Quest Guide
 
-**Version:** 0.1.2  
+**Version:** 0.1.3  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one job: when you enter a zone, show unfinished quests the client can identify and point you toward the selected quest.
 
-## What v0.1.2 does
+## What v0.1.3 does
 
 - Detects the current Retail WoW zone/map.
 - Lists unfinished accepted quests that WoW reports on that map.
@@ -18,6 +18,7 @@ Zone Quest Guide is a lightweight World of Warcraft addon that focuses on one jo
 - Lets you click a quest row to change the target.
 - Uses Blizzard super-tracking for accepted quests.
 - Uses a Blizzard user waypoint for unaccepted quest starters with coordinates.
+- Removes the matching temporary quest-starter waypoint after that quest is accepted so Blizzard quest tracking can take over.
 - Displays a textured directional indicator instead of relying on Unicode arrow glyphs.
 - Adds a minimap button for fast access to Zone Quest Guide.
 - Remembers the minimap button position between sessions.
@@ -69,9 +70,11 @@ Opening an NPC's gossip or quest-detail window can expose additional available q
 8. Shift-drag the minimap button, reload the UI, and verify its position is remembered.
 9. Open an NPC with an available quest and verify the quest appears immediately in Zone Quest Guide.
 10. Click a quest row and confirm WoW creates or super-tracks a waypoint.
-11. Turn in a quest and confirm it disappears.
-12. Cross into another zone and confirm the list updates.
-13. Take a portal/loading screen and confirm the addon continues refreshing normally.
+11. Accept that available quest and verify the temporary quest-starter map waypoint disappears while the quest becomes **IN PROGRESS**.
+12. If you have a separate manual waypoint, verify accepting a Zone Quest Guide quest does not remove it when the client exposes enough waypoint data to distinguish them.
+13. Turn in a quest and confirm it disappears.
+14. Cross into another zone and confirm the list updates.
+15. Take a portal/loading screen and confirm the addon continues refreshing normally.
 
 ## Roadmap
 
