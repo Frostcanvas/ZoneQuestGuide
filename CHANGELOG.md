@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.11 - August 16, 2026 - Available on GitHub**
+
+* **Added** Darkshore (UiMapID 62) to Zone Quest Guide's historical-timeline zone list so the main window now recognizes Darkshore as a Zidormi-controlled phased zone instead of treating it like an ordinary single-timeline zone.
+
+* **Added** Darkshore player-facing timeline labels for **PAST / Before War of the Thorns** and **PRESENT / After War of the Thorns**, plus the configured Zidormi location near 48.4, 25.0 for timeline guidance.
+
+* **Improved** phase-learning safety in Darkshore. Until Zone Quest Guide has a reliable timeline signal, the main panel can now show **Timeline: UNKNOWN - talk to Zidormi before questing.** Once Zidormi offers the before-the-battle or return-to-present option, the existing generic Zidormi detector can classify the timeline and allow phase learning to record under the correct phase.
+
+* **Changed** Darkshore support to track the old-versus-current Zidormi timeline only. This does not yet attempt to distinguish every Battle for Darkshore warfront ownership/state variant inside the present-era version.
+
+*In-game testing is still required in Darkshore. After updating, enter Darkshore and verify the timeline warning appears before talking to Zidormi, then talk to Zidormi near 48.4, 25.0 and confirm the label changes to the correct PAST or PRESENT value. Switch timelines once and verify the label updates without a second conversation, `/zq learn` records under the new phase, and Wago telemetry continues to use only strong phase evidence.*
+
+---
+
 **VERSION 0.2.10 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** the initial Wago Analytics integration to follow Wago's documented shim-based setup instead of talking directly to the optional global analytics provider. Zone Quest Guide now bundles Wago's official `WagoAnalytics` shim and registers project `EGPeM3N1` through `LibStub("WagoAnalytics"):Register(...)` when the addon loads.
