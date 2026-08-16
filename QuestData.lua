@@ -114,7 +114,7 @@ ZQG.LocationHints[25874] = {
 
 ZQG.LocationHints[25873] = {
     short = "UPPER LEVEL",
-    text = "Upper level of Freewind Post - Montarr is on top of Freewind Post. Follow the path uphill.",
+    text = "Upper level of Freewind Post - Montarr is on top of the mountain. Follow the path uphill.",
 }
 
 -- Blasted Lands (UiMapID 17; 1246 is an alternate Blasted Lands UI map used
