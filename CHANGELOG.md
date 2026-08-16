@@ -1,5 +1,17 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.1.4 - August 16, 2026 - Available on GitHub**
+
+* **Changed** quest priority so **AVAILABLE** quests are shown before **IN PROGRESS** quests in the Zone Quest Guide window.
+
+* **Improved** automatic navigation. Previously, accepted quests were sorted first, so the addon could keep pointing at an in-progress quest even when there was another quest nearby that the player had not picked up yet. Zone Quest Guide now prefers the nearest **AVAILABLE** quest and only falls back to an **IN PROGRESS** quest when there are no available quests in the displayed list.
+
+* **Improved** the auto-track label to better describe the new behavior: the addon now focuses on the next available quest rather than simply the nearest unfinished quest.
+
+*In-game testing is still required to confirm available-quest priority behaves correctly when several available and in-progress quests are present at the same time.*
+
+---
+
 **VERSION 0.1.3 - August 16, 2026 - Available on GitHub**
 
 * **Fixed** the temporary quest-starter map waypoint remaining on the world map after the player accepts that quest.
