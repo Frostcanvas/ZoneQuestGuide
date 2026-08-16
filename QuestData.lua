@@ -145,3 +145,25 @@ ZQG.PhaseSwitchers[1246] = blastedLandsZidormi
 -- the player is known to be in the opposite timeline.
 ZQG.QuestPhaseRequirements[35745] = "present" -- Attack of the Iron Horde
 ZQG.QuestPhaseRequirements[35746] = "present" -- Under Siege
+
+-- Darkshore (UiMapID 62). Retail Darkshore has a Zidormi-controlled historical
+-- split around the War of the Thorns/Burning of Teldrassil. Registering the
+-- zone here makes the main panel show the timeline line and, until a reliable
+-- phase is known, the explicit instruction to talk to Zidormi before questing.
+--
+-- Zidormi's normal "show me what Darkshore was like before..." wording is
+-- already handled by TimePhases.lua/TimelineSync.lua, as is the opposite
+-- return-to-present wording after the player has switched to the old phase.
+local darkshorePhaseConfig = {
+    phases = {
+        past = "PAST / Before War of the Thorns",
+        present = "PRESENT / After War of the Thorns",
+    },
+}
+ZQG.TimePhaseZones[62] = darkshorePhaseConfig
+
+ZQG.PhaseSwitchers[62] = {
+    name = "Zidormi",
+    x = 0.484,
+    y = 0.250,
+}
