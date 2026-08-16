@@ -37,15 +37,23 @@ for _, region in ipairs({ mainFrame:GetRegions() }) do
     end
 end
 
+local function GetStatusText(quest)
+    if ZQG.GetQuestStatusText then
+        return ZQG.GetQuestStatusText(quest)
+    end
+
+    return quest.accepted
+        and "|cff66ff66IN PROGRESS|r"
+        or "|cffffff66AVAILABLE|r"
+end
+
 local function FormatQuestRow(row)
     local quest = row.quest
     if not quest then
         return
     end
 
-    local status = quest.accepted
-        and "|cff66ff66IN PROGRESS|r"
-        or "|cffffff66AVAILABLE|r"
+    local status = GetStatusText(quest)
     local badge = quest.isCampaign and " [Campaign]"
         or (quest.isLocalStory and " [Local Story]" or "")
     local hint = GetHint(quest.id)
