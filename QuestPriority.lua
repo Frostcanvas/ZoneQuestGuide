@@ -39,6 +39,24 @@ local function UpdateAutoTrackLabel()
     end
 end
 
+local function GetStatusPriority(quest)
+    if ZQG.GetQuestStatusPriority then
+        return ZQG.GetQuestStatusPriority(quest)
+    end
+
+    return quest.accepted and 2 or 1
+end
+
+local function GetStatusText(quest)
+    if ZQG.GetQuestStatusText then
+        return ZQG.GetQuestStatusText(quest)
+    end
+
+    return quest.accepted
+        and "|cff66ff66IN PROGRESS|r"
+        or "|cffffff66AVAILABLE|r"
+end
+
 local function ApplyAvailableFirstPriority()
     local rows = GetQuestRows()
     if #rows == 0 then
@@ -57,9 +75,10 @@ local function ApplyAvailableFirstPriority()
     end
 
     table.sort(quests, function(a, b)
-        -- Unaccepted AVAILABLE quests come before accepted IN PROGRESS quests.
-        if a.accepted ~= b.accepted then
-            return not a.accepted
+        local ap = GetStatusPriority(a)
+        local bp = GetStatusPriority(b)
+        if ap ~= bp then
+            return ap < bp
         end
 
         local ad = a.distance2 or math.huge
@@ -76,9 +95,7 @@ local function ApplyAvailableFirstPriority()
         row.quest = quest
 
         if quest then
-            local status = quest.accepted
-                and "|cff66ff66IN PROGRESS|r"
-                or "|cffffff66AVAILABLE|r"
+            local status = GetStatusText(quest)
             local badge = quest.isCampaign and " [Campaign]"
                 or (quest.isLocalStory and " [Local Story]" or "")
 
