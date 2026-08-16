@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.21 - August 16, 2026 - Available on GitHub**
+
+* **Added** direct Uldum timeline detection from live Retail map IDs. The player's recording showed `1527 / Uldum` in **PRESENT / N'Zoth assaults** and `249 / Uldum` in **PAST / Cataclysm Uldum**, so Zone Quest Guide can now use those map identities as stronger evidence than cached Zidormi session state.
+
+* **Fixed** `/zq check` briefly reporting map `249` as PRESENT after the Zidormi transition even though the main timeline line had already corrected itself to **PAST / Cataclysm Uldum** once Zidormi was reopened. The new map-derived override makes `249` directly PAST and `1527` directly PRESENT instead of waiting for another gossip refresh.
+
+* **Changed** Uldum-related maps `1330` and `1571` to remain unclassified by direct map identity until their live role is actually observed. They remain part of the broader Uldum registry but are not assumed to be one side of the Zidormi switch.
+
+* **Confirmed** in-game that the Wago bridge is loaded and the new session counters are increasing while normal play generates evidence. During this recording `/zq check` increased from `phase=3 map/quest=29` to `phase=9 map/quest=32`. This confirms the addon is queuing observations through the loaded Wago Analytics client; it does not by itself confirm that the new counters have reached the Wago website/dashboard.
+
+*The Uldum map IDs, Zidormi wording, and Wago session-counter increases were observed in World of Warcraft. The new v0.2.21 map-derived Uldum detection itself still needs an in-game check after updating: before talking to Zidormi, verify `/zq check` reports `1527` as PRESENT `(detected)`, switch to Cataclysm Uldum and verify `249` reports PAST `(detected)` before reopening Zidormi, then return to `1527`. Wago server/dashboard receipt of the new map/quest counters still needs separate verification. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.20 - August 16, 2026 - Available on GitHub**
 
 * **Added** direct Tirisfal Glades map detection from live Retail testing. The player's recording showed `2070 / Tirisfal Glades` in **PRESENT / After Battle for Lordaeron** and `18 / Tirisfal Glades` after switching to **PAST / Before Battle for Lordaeron**.
@@ -248,7 +262,7 @@
 
 * **Added** Horde/Alliance-separated learning data so multiple unquested alts can help map the same phased zone without mixing faction-specific quest observations together. The data is stored in the existing account-wide `ZoneQuestGuideDB` SavedVariable.
 
-* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that a quest belongs to the phase currently being viewed.
+* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that the quest belongs to the phase currently being viewed.
 
 * **Added** `/zq learn` to show the current map's phase-learning status and `/zq export` to open a copyable phase-data report for testing/community contributions.
 
