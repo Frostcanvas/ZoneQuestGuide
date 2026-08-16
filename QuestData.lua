@@ -117,14 +117,17 @@ ZQG.LocationHints[25873] = {
     text = "Upper level of Freewind Post - Montarr is on top of the mountain. Follow the path uphill.",
 }
 
--- Blasted Lands (UiMapID 17)
--- Zidormi stands near the northern border and switches the zone between the
--- pre-Iron-Horde version (past) and the Iron Horde incursion version (present).
-ZQG.PhaseSwitchers[17] = {
+-- Blasted Lands (UiMapID 17; 1246 is an alternate Blasted Lands UI map used
+-- by some modern map contexts). Zidormi stands near the northern border and
+-- switches the zone between the pre-Iron-Horde version (past) and the Iron
+-- Horde incursion version (present).
+local blastedLandsZidormi = {
     name = "Zidormi",
     x = 0.482,
     y = 0.072,
 }
+ZQG.PhaseSwitchers[17] = blastedLandsZidormi
+ZQG.PhaseSwitchers[1246] = blastedLandsZidormi
 
 -- Horde Iron Horde incursion quests confirmed while testing Blasted Lands.
 -- These quests require the present/Iron Horde version of the zone. If the
