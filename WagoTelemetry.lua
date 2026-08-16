@@ -3,8 +3,7 @@ local ADDON_NAME, ZQG = ...
 local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
 local projectID = GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "X-Wago-ID") or nil
 local analytics
-local registrationAttempted = false
-local analyticsReadyAnnounced = false
+local analyticsRegistered = false
 local sentThisSession = {}
 
 local STRONG_EVIDENCE = {
@@ -32,6 +31,18 @@ local function PlayerFaction()
     return "neutral"
 end
 
+local function IsWagoAnalyticsLoaded()
+    if C_AddOns and C_AddOns.IsAddOnLoaded then
+        return C_AddOns.IsAddOnLoaded("WagoAnalytics") and true or false
+    end
+
+    if IsAddOnLoaded then
+        return IsAddOnLoaded("WagoAnalytics") and true or false
+    end
+
+    return false
+end
+
 local function GetReportablePhase(mapID)
     if not mapID or not ZQG.GetTimePhaseKey then
         return nil, nil
@@ -53,37 +64,41 @@ local function GetReportablePhase(mapID)
 end
 
 local function RegisterAnalytics()
-    if analytics then
+    if analyticsRegistered then
         return analytics
     end
+    analyticsRegistered = true
 
-    if registrationAttempted then
-        return nil
-    end
-    registrationAttempted = true
-
-    if not projectID or projectID == "" then
+    if not projectID or projectID == "" or not LibStub then
         return nil
     end
 
-    local provider = _G.WagoAnalytics
-    if not provider or type(provider.Register) ~= "function" then
+    -- Wago's documented integration path registers through the bundled shim.
+    -- The shim returns the real WagoAnalytics API when the Wago App's addon is
+    -- available, or a safe no-op table when it is not.
+    local shim = LibStub("WagoAnalytics", true)
+    if not shim or type(shim.Register) ~= "function" then
         return nil
     end
 
-    local ok, registered = pcall(provider.Register, provider, projectID)
+    local ok, registered = pcall(shim.Register, shim, projectID)
     if not ok or not registered then
         return nil
     end
 
     analytics = registered
 
-    if type(analytics.Switch) == "function" then
+    if IsWagoAnalyticsLoaded() and type(analytics.Switch) == "function" then
         pcall(analytics.Switch, analytics, "phase_learning_enabled", true)
     end
 
     return analytics
 end
+
+-- Wago recommends registering at addon load time instead of waiting for a
+-- gameplay event. OptionalDependencies ensures the real WagoAnalytics addon is
+-- loaded before ZoneQuestGuide when it is installed.
+RegisterAnalytics()
 
 local function SafeToken(value)
     value = tostring(value or "unknown"):lower()
@@ -111,6 +126,13 @@ end
 
 local function ReportEvidence(questID, evidence, mapID)
     if type(questID) ~= "number" or questID <= 0 or not STRONG_EVIDENCE[evidence] then
+        return false
+    end
+
+    -- Do not mark evidence as sent when the real WagoAnalytics addon is absent.
+    -- The shim remains safe/no-op in that case, but keeping the evidence unsent
+    -- makes the state truthful for the current session.
+    if not IsWagoAnalyticsLoaded() then
         return false
     end
 
@@ -146,9 +168,6 @@ local function ReportEvidence(questID, evidence, mapID)
     end
 
     sentThisSession[key] = true
-
-    -- A fixed counter makes it easy to confirm that the bridge is receiving
-    -- useful observations without needing to inspect every quest-specific key.
     pcall(api.IncrementCounter, api, "phase_evidence_total", 1)
     return true
 end
@@ -252,8 +271,6 @@ events:SetScript("OnEvent", function(_, event, arg1)
     end
 
     if event == "GOSSIP_SHOW" then
-        -- TimelineSync/TimePhases may need a moment to establish the Zidormi
-        -- phase before community evidence is sent.
         C_Timer.After(0.15, function()
             ScanGossipEvidence()
             ScanAvailableQuestLines()
@@ -262,10 +279,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
     end
 
     if event == "PLAYER_ENTERING_WORLD" then
-        C_Timer.After(1.0, function()
-            RegisterAnalytics()
-            ScanAvailableQuestLines()
-        end)
+        C_Timer.After(1.0, ScanAvailableQuestLines)
     elseif event == "ZONE_CHANGED_NEW_AREA" or event == "UNIT_PHASE" then
         ScheduleAvailableScan(0.6)
     else
@@ -275,20 +289,20 @@ end)
 
 local function WagoStatus()
     if not projectID or projectID == "" then
-        Print("Wago telemetry is prepared but not active yet: the Wago project ID still needs to be added to ZoneQuestGuide.toc.")
+        Print("Wago telemetry is not configured: ZoneQuestGuide.toc has no X-Wago-ID.")
         return
     end
 
-    local api = RegisterAnalytics()
-    if api then
-        if not analyticsReadyAnnounced then
-            analyticsReadyAnnounced = true
-        end
-        Print("Wago telemetry is active. It sends anonymous strong phase evidence only: map ID, faction, phase, quest ID, evidence type, and phase source.")
+    if not analytics then
+        Print("Wago telemetry could not register through the bundled WagoAnalytics shim.")
         return
     end
 
-    Print("Wago project ID is configured, but WagoAnalytics is not available on this client or data sharing is not active.")
+    if IsWagoAnalyticsLoaded() then
+        Print("Wago telemetry is registered for project " .. tostring(projectID) .. ". The WagoAnalytics addon is loaded; upload still depends on the player's Wago App Analytics sharing setting.")
+    else
+        Print("Wago project " .. tostring(projectID) .. " is configured and the shim is ready, but the WagoAnalytics addon is not loaded on this client.")
+    end
 end
 
 local originalSlashHandler = SlashCmdList.ZONEQUESTGUIDE
@@ -309,6 +323,7 @@ ZQG.ReportPhaseEvidenceToWago = ReportEvidence
 ZQG.GetWagoTelemetryStatus = function()
     return {
         projectID = projectID,
-        active = analytics ~= nil,
+        registered = analytics ~= nil,
+        providerLoaded = IsWagoAnalyticsLoaded(),
     }
 end
