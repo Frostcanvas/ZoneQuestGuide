@@ -1,5 +1,17 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.8 - August 16, 2026 - Available on GitHub**
+
+* **Changed** the phase-data contribution destination from the temporary GitHub issue page to the dedicated ZoneQuestGuide Google Form supplied for community submissions.
+
+* **Improved** the contribution popup wording so players are told to open the Google Form, paste the anonymous `/zq export` report, and submit it. The URL field is now labeled **Google Form URL** while keeping the existing **Open Export**, **Select URL**, and **Later** controls.
+
+* **Changed** `/zq contribute` and automatic contribution reminders to show `https://forms.gle/Gnqf8kN44kDZxMs86` as the current manual submission destination.
+
+*The Google Form link has been wired into the addon but the full in-game contribution flow has not yet been tested. Verify `/zq contribute` shows the correct form URL, **Select URL** highlights it for copying, **Open Export** still opens the phase report, and a test submission can be pasted into the form successfully. The Wago telemetry bridge from v0.2.7 is still awaiting a Wago project ID and in-game testing; Wago is not yet listed as an available distribution platform.*
+
+---
+
 **VERSION 0.2.7 - August 16, 2026 - Available on GitHub**
 
 * **Added** a Wago Analytics telemetry bridge for anonymous community phase evidence. When Zone Quest Guide is later assigned a Wago project ID and the player's Wago App has Analytics data sharing enabled, the addon can report phase-aware quest observations through the optional WagoAnalytics addon.
@@ -114,7 +126,7 @@
 
 **VERSION 0.2.0 - August 16, 2026 - Available on GitHub**
 
-* **Added** a new floating navigation HUD inspired by the large directional arrows used by full quest-guide addons. The HUD stays on screen independently of the main Zone Quest Guide window and shows the selected quest, its current status, and a large directional arrow.
+* **Added** a new floating navigation HUD inspired by the large directional arrows used by full quest-guide addons. The HUD stays on screen independently of the main quest list and shows the selected quest, its current status, and a large directional arrow.
 
 * **Improved** directional navigation with a smoothly rotating drawn arrow instead of relying on Unicode arrow characters. The new HUD builds the arrow from WoW line regions, so it should avoid the missing-glyph/square problem seen with the original font-based indicator while also giving the player a much easier direction to follow at a glance.
 
@@ -138,7 +150,7 @@
 
   Previously, the phase framework could refresh when WoW reported phase-related changes, but it still needed a zone-specific detector or a manual `/zq phase` override to know what those phases actually meant. Zidormi's own gossip option provides a much more useful player-facing signal because the destination she offers is the opposite of the version the character is currently in.
 
-* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates the session's detected phase to that destination. Merely closing the gossip window does not change the detected phase.
+* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
 
 * **Added** a **(Zidormi)** source label to the phase badge so the player can tell when the current **PAST** or **PRESENT** phase was identified from a Zidormi conversation rather than a manual override.
 
