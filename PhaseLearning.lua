@@ -278,7 +278,7 @@ local exportNote = exportFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlig
 exportNote:SetPoint("TOPLEFT", exportTitle, "BOTTOMLEFT", 0, -6)
 exportNote:SetWidth(600)
 exportNote:SetJustifyH("LEFT")
-exportNote:SetText("Copy this text and send it with a bug report or phase-data contribution. It contains zone IDs, faction, quest IDs/names, phase, and observation counts - no character name, realm, or GUID.")
+exportNote:SetText("Copy this tab-separated text and send it with a bug report or phase-data contribution. It contains zone IDs, faction, quest IDs/names, phase, and observation counts - no character name, realm, or GUID.")
 
 local exportClose = CreateFrame("Button", nil, exportFrame, "UIPanelCloseButton")
 exportClose:SetPoint("TOPRIGHT", -3, -3)
@@ -312,15 +312,15 @@ end
 
 local function SafeField(value)
     value = tostring(value or "")
-    value = value:gsub("[|\r\n]", " ")
+    value = value:gsub("[|\t\r\n]", " ")
     return value
 end
 
 local function BuildExportText()
     local learning = GetDB().phaseLearning
     local lines = {
-        "ZQGPHASEDATA|1",
-        "# mapID|faction|phase|questID|name|completed|seen|available|offered|accepted|active|turnedIn|phaseSources",
+        "ZQGPHASEDATA|2",
+        "# mapID\tfaction\tphase\tquestID\tname\tcompleted\tseen\tavailable\toffered\taccepted\tactive\tturnedIn\tphaseSources",
     }
 
     for _, mapID in ipairs(SortedKeys(learning.zones, true)) do
@@ -350,7 +350,7 @@ local function BuildExportText()
                         tostring(phaseData.active or 0),
                         tostring(phaseData.turnedIn or 0),
                         SafeField(table.concat(sources, ",")),
-                    }, "|")
+                    }, "\t")
                 end
             end
         end
