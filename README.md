@@ -1,9 +1,9 @@
 # Zone Quest Guide
 
-**Version:** 0.2.22  
+**Version:** 0.2.24  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
-Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone, points the player toward the next useful target, and learns anonymous map/quest and timeline evidence while the player quests.
+Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone, points the player toward the next useful target, and learns anonymous map/quest, timeline, and instance evidence while the player quests.
 
 ## Current features
 
@@ -18,10 +18,11 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Recognizes known Zidormi/Rhonormu historical timeline zones.
 - Learns phase/quest evidence locally when a historical phase is known.
 - Learns **map ID + map name + quest associations** even when no historical phase is known.
+- Learns anonymous instance/scenario fingerprints such as map ID, instance ID, difficulty ID, LFG ID, instance type, and group-size metadata.
 - Exports anonymous learning data with WoW-safe tab-separated fields.
-- Can forward stronger anonymous phase and map/quest evidence through Wago Analytics when the player has Wago Analytics sharing enabled.
+- Can forward stronger anonymous phase, map/quest, map-visit, phase-visit, and instance-fingerprint evidence through Wago Analytics when the player has Wago Analytics sharing enabled.
 - Builds a clean GitHub package named **ZoneQuestGuide.zip** through GitHub Actions.
-- Includes stable `/zq phase`, `/zq maps`, `/zq mapid`, and `/zq check` diagnostics.
+- Includes stable `/zq phase`, `/zq maps`, `/zq mapid`, `/zq inspect`, and `/zq check` diagnostics.
 
 ## Map and quest learning
 
@@ -42,16 +43,36 @@ Commands:
 - `/zq maps` — show current map ID/name and locally learned quest count.
 - `/zq mapid` — show only WoW's current live map ID/name.
 - `/zq mapexport` — open only the map/quest learning export.
-- `/zq export` — open the phase-learning export followed by the map/quest block.
+- `/zq export` — open the combined phase, map/quest, and instance-learning export.
 
 ### Export format
 
-Current exports use tab-separated schema version 2:
+Current combined exports use tab-separated schemas:
 
 - `ZQGPHASEDATA|2`
 - `ZQGMAPQUESTDATA|2`
+- `ZQGINSTANCEDATA|1`
 
-Tabs avoid WoW interpreting normal pipe-delimited field boundaries as text-formatting escape sequences. Exports intentionally omit character names, realm names, GUIDs, guild names, and account identifiers.
+Tabs avoid WoW interpreting normal pipe-delimited field boundaries as text-formatting escape sequences. Exports intentionally omit character names, realm names, GUIDs, guild names, account identifiers, chat, coordinates, and party/raid member names.
+
+## Instance and scenario learning
+
+Version 0.2.24 adds an account-wide `ZoneQuestGuideDB.instanceLearning` store for unusual instanced content such as Warfronts, scenarios, raids, dungeons, and other queueable maps. When the player actually loads into an instance, Zone Quest Guide can record a coarse fingerprint containing:
+
+- live `UiMapID` and map name;
+- parent map ID/name when WoW provides one;
+- instance ID/name and instance type;
+- difficulty ID/name;
+- maximum-player and instance-group-size values exposed by WoW;
+- LFG dungeon ID when available;
+- scenario name/type/area metadata when available;
+- faction and the current Zone Quest Guide timeline/source if one is known.
+
+`/zq inspect` (also `/zq instance`) prints the current fingerprint directly in chat. This is intended for tests such as comparing **Normal vs Heroic Battle for Stromgarde** or identifying which of Blizzard's alternate Arathi/Darkshore map IDs is actually used by a Warfront instance.
+
+`/zq instanceexport` opens just the instance-learning block. `/zq export` includes the instance block after the existing phase and map/quest blocks.
+
+The local export can contain Blizzard's localized instance/scenario names because the player explicitly chooses whether to copy it. Automatic Wago instance telemetry is stricter: it sends only coarse IDs/type/faction/group-size fields and does not include instance names, scenario names, coordinates, timestamps, character/account identity, chat, or group-member information.
 
 ## Supplemental quest availability
 
@@ -145,7 +166,8 @@ Manual overrides remain available as a fallback:
 - `/zq phase` — current timeline, source, map ID, and map name.
 - `/zq maps` — current map plus local learned quest count.
 - `/zq mapid` — live map ID/name.
-- `/zq check` — map ID/name, timeline/source, learned quest count, and current-session Wago phase/map-quest counts.
+- `/zq inspect` — current map/parent map plus instance, difficulty, LFG, scenario, faction, and timeline context.
+- `/zq check` — map ID/name, timeline/source, learned quest count, and current-session Wago phase/map/visit/instance counts.
 - `/zq debug` — alias for `/zq check`.
 
 ## Phase learning
@@ -168,19 +190,22 @@ The addon can remind the player when useful data exists, but the player chooses 
 
 Configured project ID: `EGPeM3N1`.
 
-When WagoAnalytics is available, Zone Quest Guide can contribute two anonymous streams while the player quests normally:
+When WagoAnalytics is available, Zone Quest Guide can contribute anonymous evidence while the player uses the addon normally:
 
-- **Phase evidence:** map ID, faction, reliable phase, quest ID, evidence type, and phase source.
+- **Phase quest evidence:** map ID, faction, reliable phase, quest ID, evidence type, and phase source.
 - **Map/quest evidence:** map ID, faction, quest ID, and evidence type even when no historical phase is known.
+- **Map visits:** map ID + faction, once per map/faction during the UI session.
+- **Phase visits:** map ID + faction + reliable Zidormi/detected phase/source.
+- **Instance visits:** map ID, instance ID, difficulty ID, LFG ID, maximum/group-size values, instance type, and faction.
 
-Only stronger **available**, **offered**, **active**, and **turned-in** observations are automatically reported. Accepted-only and generic seen observations remain local. Taxi-flight scans are suppressed.
+Only stronger **available**, **offered**, **active**, and **turned-in** quest observations are automatically reported. Accepted-only and generic seen observations remain local. Taxi-flight map scans are suppressed.
 
-Character names, realms, guild names, GUIDs, account identifiers, quest names, and manual phase overrides are not included in Wago metric keys.
+Character names, realms, guild names, GUIDs, account identifiers, quest names, instance names, scenario names, coordinates, timestamps, chat, party/raid member names, and manual phase overrides are not included in Wago metric keys.
 
-- `/zq wago` — show Wago bridge status and this UI session's phase/map-quest queued counts.
+- `/zq wago` — show Wago bridge status and this UI session's queued counters.
 - `/zq telemetry` — alias for `/zq wago`.
 
-The Uldum test recording confirmed in-game that WagoAnalytics was loaded and that the session counters increased while the character generated quest/timeline evidence: phase observations rose from `3` to `9`, and map/quest observations rose from `29` to `32`. That confirms the addon is queuing evidence through the loaded Wago client. It does **not** by itself confirm server/dashboard receipt of the new counters.
+The earlier Uldum test recording confirmed in-game that WagoAnalytics was loaded and that the phase/map-quest session counters increased while the character generated evidence. That confirms the addon was queuing those existing observation types through the loaded Wago client. It does **not** confirm Wago server/dashboard receipt of the newer v0.2.23 map/phase-visit counters or the v0.2.24 instance-visit counters.
 
 Wago upload still depends on the player's Wago App Analytics-sharing setting. No downloadable Wago release has been published yet, so **GitHub remains the only listed distribution platform**.
 
@@ -210,13 +235,13 @@ Quests with meaningful reward choices remain open for manual selection. Holding 
 - `/zq arrow`, `/zq arrow reset`
 - `/zq options`, `/zq autoaccept`, `/zq autoturnin`, `/zq autocomplete`
 - `/zq phase`, `/zq phase auto`, `/zq phase past`, `/zq phase present`
-- `/zq learn`, `/zq maps`, `/zq mapid`, `/zq check`, `/zq debug`
-- `/zq export`, `/zq mapexport`, `/zq contribute`
+- `/zq learn`, `/zq maps`, `/zq mapid`, `/zq inspect`, `/zq check`, `/zq debug`
+- `/zq export`, `/zq mapexport`, `/zq instanceexport`, `/zq contribute`
 - `/zq wago`, `/zq telemetry`
 
 ## GitHub ZIP packages
 
-GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.22.zip`.
+GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.24.zip`.
 
 ## Install
 
@@ -228,29 +253,31 @@ GitHub's built-in **Code -> Download ZIP** is a source archive and will still us
 
 ## Important limitations
 
-WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Map/quest learning records evidence, not automatic proof that a quest belongs exclusively to one map or timeline. Wago counters are aggregated evidence and do not replace review of local/manual exports.
+WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Map/quest and instance learning record evidence, not automatic proof that a quest or instance belongs exclusively to one map/timeline/difficulty. Wago counters are aggregated evidence and do not replace review of local/manual exports.
 
 Supplemental `blockedBy` and `exclusiveWith` rules are curated relationships, not relationships inferred automatically from completion history. Incorrect quest IDs could hide a valid supplemental quest, so they should be added only from reliable evidence.
 
-## In-game/test plan for v0.2.22
+## In-game/test plan for v0.2.24
 
-1. Update to v0.2.22 and `/reload`.
-2. Confirm existing supplemental quests with `prereqs` still stay hidden until every prerequisite is completed and appear when their prerequisites are satisfied.
-3. When a real breadcrumb/later-progression relationship is identified, add its quest IDs with `blockedBy` and confirm the supplemental quest disappears once the blocking quest is completed.
-4. When a real mutually exclusive route is identified, add its IDs with `exclusiveWith` and confirm the supplemental quest disappears while the alternate quest is active and remains hidden after that alternate quest is completed. If the alternate can be abandoned before completion, confirm the supplemental quest can reappear after refresh.
-5. Confirm live Blizzard-provided available/accepted quests are unaffected by supplemental-only blocker rules.
-6. Continue the v0.2.21 Uldum check: `1527` should report PRESENT and `249` PAST before talking to Zidormi.
-7. Continue the v0.2.20 Tirisfal check: `2070` should be PRESENT and `18` should be PAST before talking to Zidormi.
-8. Continue verifying Arathi's three-state handler and separately check the Wago development dashboard for the new map/quest counters.
-9. Continue checking `/zq mapexport` and `/zq export` for intact tab-separated headers and quest names.
+1. Update to v0.2.24 and `/reload` before entering the Warfront.
+2. In the outdoor world, run `/zq inspect` and confirm it reports `inInstance=no` without errors.
+3. Queue **Heroic Battle for Stromgarde**. Immediately after loading in, run `/zq inspect` and `/zq check` and capture the map ID, instance ID, difficulty ID/name, LFG ID, scenario name, and `instancevisit` counter.
+4. Run `/zq inspect` again after the Warfront actually starts. Confirm the values remain stable or record any map/instance transition WoW reports.
+5. If possible, repeat with **Normal Battle for Stromgarde** and compare map ID, instance ID, difficulty ID, LFG ID, maximum players, and group-size values against Heroic.
+6. Open `/zq instanceexport` and `/zq export`; verify `ZQGINSTANCEDATA|1` is present and the exported row has intact tab-separated fields.
+7. Verify `/zq wago` and `/zq check` show `instancevisit` increasing once for a newly observed instance fingerprint, without repeatedly increasing while moving around inside the same instance.
+8. Separately verify the Wago development dashboard/server receives an `instancevisit_m...` counter and `instance_visit_total`; local session counts alone do not prove server receipt.
+9. Continue the outstanding v0.2.23 checks for map/phase visit counters and taxi suppression.
+10. Continue testing the known Arathi three-state edge cases; map `14` still requires reliable Zidormi context to distinguish PAST from FOURTH WAR.
 
 ## Roadmap
 
+- Use collected instance fingerprints to identify Warfront/scenario map IDs and Normal/Heroic differences without requiring one developer character to visit every variant.
 - Use collected map/quest associations to discover more Retail map aliases automatically.
 - Validate remaining Zidormi/Rhonormu timeline zones in-game, especially Darkshore, Dustwallow Marsh, Vale of Eternal Blossoms, and Peak of Serenity.
 - Identify the live role of alternate timeline-related map IDs such as Tirisfal `1247`, Uldum `1330`/`1571`, and Silithus `1321`/`2354`.
 - Add curated `blockedBy` and `exclusiveWith` relationships as real breadcrumb and mutually exclusive quest cases are identified.
-- Review Wago map/quest telemetry volume/cardinality before the first public Wago release.
+- Review Wago map/quest and instance telemetry volume/cardinality before the first public Wago release.
 - Automate review/import of trusted Google Form submissions.
 - Expand curated phase-exclusive quest mappings and supplemental quest-chain coverage.
 
