@@ -5,6 +5,7 @@ local projectID = GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "X-Wago-ID")
 local analytics
 local analyticsRegistered = false
 local sentThisSession = {}
+local stateSentThisSession = {}
 local discoverySwitchesThisSession = {}
 local phaseSentCount = 0
 local mapQuestSentCount = 0
@@ -12,11 +13,19 @@ local mapVisitSentCount = 0
 local phaseVisitSentCount = 0
 local instanceVisitSentCount = 0
 local discoverySwitchSentCount = 0
+local questDiscoverySwitchSentCount = 0
 local MAX_DISCOVERY_SWITCHES_PER_SESSION = 200
+local MAX_QUEST_DISCOVERY_SWITCHES_PER_SESSION = 150
 
-local STRONG_EVIDENCE = {
+-- These are the same evidence classes represented by the local learning export.
+-- They intentionally remain distinct because they have different confidence:
+-- available is a map/API hint, offered/active/turnedIn are much stronger proof,
+-- and accepted can be carried across maps or timelines.
+local REPORTABLE_EVIDENCE = {
+    seen = true,
     available = true,
     offered = true,
+    accepted = true,
     active = true,
     turnedIn = true,
 }
@@ -43,6 +52,15 @@ local function IsOnTaxi()
     return UnitOnTaxi and UnitOnTaxi("player") and true or false
 end
 
+local function IsCompleted(questID)
+    if not questID or not C_QuestLog or not C_QuestLog.IsQuestFlaggedCompleted then
+        return false
+    end
+
+    local ok, completed = pcall(C_QuestLog.IsQuestFlaggedCompleted, questID)
+    return ok and completed and true or false
+end
+
 local function IsWagoAnalyticsLoaded()
     if C_AddOns and C_AddOns.IsAddOnLoaded then
         return C_AddOns.IsAddOnLoaded("WagoAnalytics") and true or false
@@ -65,9 +83,8 @@ local function GetReportablePhase(mapID)
         return nil, source
     end
 
-    -- Manual phase overrides are useful for the local learning database, but
-    -- they are intentionally excluded from community telemetry because a typo or
-    -- mistaken override should not become crowdsourced phase evidence.
+    -- Manual overrides remain useful locally, but are not promoted into crowd
+    -- telemetry because an accidental override should not become phase evidence.
     if source ~= "zidormi" and source ~= "detected" then
         return nil, source
     end
@@ -85,9 +102,6 @@ local function RegisterAnalytics()
         return nil
     end
 
-    -- Wago's documented integration path registers through the bundled shim.
-    -- The shim returns the real WagoAnalytics API when the Wago App's addon is
-    -- available, or a safe no-op table when it is not.
     local shim = LibStub("WagoAnalytics", true)
     if not shim or type(shim.Register) ~= "function" then
         return nil
@@ -107,14 +121,14 @@ local function RegisterAnalytics()
         pcall(analytics.Switch, analytics, "phase_visit_learning_enabled", true)
         pcall(analytics.Switch, analytics, "instance_visit_learning_enabled", true)
         pcall(analytics.Switch, analytics, "discovery_switch_mirroring_enabled", true)
+        pcall(analytics.Switch, analytics, "full_research_telemetry_enabled", true)
     end
 
     return analytics
 end
 
--- Wago recommends registering at addon load time instead of waiting for a
--- gameplay event. OptionalDependencies ensures the real WagoAnalytics addon is
--- loaded before ZoneQuestGuide when it is installed.
+-- Wago recommends registering when the addon loads. OptionalDependencies makes
+-- the real WagoAnalytics addon available first when it is installed.
 RegisterAnalytics()
 
 local function SafeToken(value)
@@ -126,6 +140,18 @@ local function SafeToken(value)
         return "unknown"
     end
     return value
+end
+
+local function NumericToken(value)
+    local number = tonumber(value)
+    if not number then
+        return "0"
+    end
+    return tostring(math.floor(number))
+end
+
+local function ValidMetricName(name)
+    return type(name) == "string" and name ~= "" and #name <= 128
 end
 
 local function PhaseMetricName(mapID, faction, phase, questID, evidence, source)
@@ -141,6 +167,18 @@ local function PhaseMetricName(mapID, faction, phase, questID, evidence, source)
     }, "_")
 end
 
+local function PhaseCompletionMetricName(mapID, faction, phase, questID, source)
+    return table.concat({
+        "phasecompleted",
+        "m" .. SafeToken(mapID),
+        SafeToken(faction),
+        SafeToken(phase),
+        "q" .. SafeToken(questID),
+        "src",
+        SafeToken(source),
+    }, "_")
+end
+
 local function MapQuestMetricName(mapID, faction, questID, evidence)
     return table.concat({
         "mapquest",
@@ -148,6 +186,15 @@ local function MapQuestMetricName(mapID, faction, questID, evidence)
         SafeToken(faction),
         "q" .. SafeToken(questID),
         SafeToken(evidence),
+    }, "_")
+end
+
+local function MapQuestCompletionMetricName(mapID, faction, questID)
+    return table.concat({
+        "mapquestcompleted",
+        "m" .. SafeToken(mapID),
+        SafeToken(faction),
+        "q" .. SafeToken(questID),
     }, "_")
 end
 
@@ -170,58 +217,79 @@ local function PhaseVisitMetricName(mapID, faction, phase, source)
     }, "_")
 end
 
+-- This mirrors the non-name fields from ZQGINSTANCEDATA|1. Localized map,
+-- instance, difficulty, and scenario names stay local; their stable IDs/context
+-- are what the crowd dataset needs and avoid localization/cardinality noise.
 local function InstanceVisitMetricName(info, faction)
     return table.concat({
         "instancevisit",
-        "m" .. SafeToken(info.mapID),
-        "i" .. SafeToken(info.instanceID or 0),
-        "d" .. SafeToken(info.difficultyID or 0),
-        "lfg" .. SafeToken(info.lfgDungeonID or 0),
-        "max" .. SafeToken(info.maxPlayers or 0),
-        "grp" .. SafeToken(info.instanceGroupSize or 0),
+        "m" .. NumericToken(info.mapID),
+        "p" .. NumericToken(info.parentMapID),
+        "i" .. NumericToken(info.instanceID),
+        "d" .. NumericToken(info.difficultyID),
+        "lfg" .. NumericToken(info.lfgDungeonID),
+        "max" .. NumericToken(info.maxPlayers),
+        "grp" .. NumericToken(info.instanceGroupSize),
+        "st" .. NumericToken(info.scenarioType),
+        "sa" .. NumericToken(info.scenarioArea),
+        "sk" .. NumericToken(info.scenarioTextureKit),
         SafeToken(info.instanceType or "unknown"),
+        "ph" .. SafeToken(info.phase or "unknown"),
+        "src" .. SafeToken(info.phaseSource or "unknown"),
         SafeToken(faction),
     }, "_")
 end
 
 local function MapDiscoverySwitchName(mapID, faction)
     return table.concat({
-        "seen",
-        "map",
-        "m" .. SafeToken(mapID),
-        SafeToken(faction),
+        "seen", "map", "m" .. SafeToken(mapID), SafeToken(faction),
     }, "_")
 end
 
 local function PhaseDiscoverySwitchName(mapID, faction, phase, source)
     return table.concat({
-        "seen",
-        "phase",
-        "m" .. SafeToken(mapID),
-        SafeToken(faction),
-        SafeToken(phase),
-        "src",
-        SafeToken(source),
+        "seen", "phase", "m" .. SafeToken(mapID), SafeToken(faction),
+        SafeToken(phase), "src", SafeToken(source),
+    }, "_")
+end
+
+local function PhaseQuestDiscoverySwitchName(mapID, faction, phase, questID, evidence, source)
+    return table.concat({
+        "seen", "quest", "m" .. SafeToken(mapID), SafeToken(faction),
+        SafeToken(phase), "q" .. SafeToken(questID), SafeToken(evidence),
+        "src", SafeToken(source),
+    }, "_")
+end
+
+local function MapQuestDiscoverySwitchName(mapID, faction, questID, evidence)
+    return table.concat({
+        "seen", "mapquest", "m" .. SafeToken(mapID), SafeToken(faction),
+        "q" .. SafeToken(questID), SafeToken(evidence),
     }, "_")
 end
 
 local function InstanceDiscoverySwitchName(info, faction)
     return table.concat({
-        "seen",
-        "instance",
-        "m" .. SafeToken(info.mapID),
-        "i" .. SafeToken(info.instanceID or 0),
-        "d" .. SafeToken(info.difficultyID or 0),
-        "lfg" .. SafeToken(info.lfgDungeonID or 0),
-        "max" .. SafeToken(info.maxPlayers or 0),
-        "grp" .. SafeToken(info.instanceGroupSize or 0),
+        "seen", "instance",
+        "m" .. NumericToken(info.mapID),
+        "p" .. NumericToken(info.parentMapID),
+        "i" .. NumericToken(info.instanceID),
+        "d" .. NumericToken(info.difficultyID),
+        "lfg" .. NumericToken(info.lfgDungeonID),
+        "max" .. NumericToken(info.maxPlayers),
+        "grp" .. NumericToken(info.instanceGroupSize),
+        "st" .. NumericToken(info.scenarioType),
+        "sa" .. NumericToken(info.scenarioArea),
+        "sk" .. NumericToken(info.scenarioTextureKit),
         SafeToken(info.instanceType or "unknown"),
+        "ph" .. SafeToken(info.phase or "unknown"),
+        "src" .. SafeToken(info.phaseSource or "unknown"),
         SafeToken(faction),
     }, "_")
 end
 
-local function ReportDiscoverySwitch(name)
-    if type(name) ~= "string" or name == "" or #name > 128 then
+local function ReportDiscoverySwitch(name, isQuestEvidence)
+    if not ValidMetricName(name) then
         return false
     end
 
@@ -229,10 +297,13 @@ local function ReportDiscoverySwitch(name)
         return true
     end
 
-    -- WagoAnalytics currently allows hundreds of switch variables per addon,
-    -- but discovery mirrors should never crowd out the addon's normal feature
-    -- switches during unusually long exploration sessions.
     if discoverySwitchSentCount >= MAX_DISCOVERY_SWITCHES_PER_SESSION then
+        return false
+    end
+
+    -- Keep some switch headroom for map/phase/instance fingerprints even during
+    -- long questing sessions. All quest evidence is still sent as counters.
+    if isQuestEvidence and questDiscoverySwitchSentCount >= MAX_QUEST_DISCOVERY_SWITCHES_PER_SESSION then
         return false
     end
 
@@ -252,24 +323,43 @@ local function ReportDiscoverySwitch(name)
 
     discoverySwitchesThisSession[name] = true
     discoverySwitchSentCount = discoverySwitchSentCount + 1
+    if isQuestEvidence then
+        questDiscoverySwitchSentCount = questDiscoverySwitchSentCount + 1
+    end
     return true
 end
 
-local function ReportEvidence(questID, evidence, mapID)
-    if type(questID) ~= "number" or questID <= 0 or not STRONG_EVIDENCE[evidence] then
+local function SetCompletionCounter(metric, completed)
+    if not ValidMetricName(metric) or not IsWagoAnalyticsLoaded() then
         return false
     end
 
-    -- Available-quest scans can briefly reflect maps crossed by a flight path.
-    -- Do not turn those transient flyover maps into community phase evidence.
-    if IsOnTaxi() then
+    local value = completed and 1 or 0
+    local key = "state:" .. metric
+    if stateSentThisSession[key] == value then
+        return true
+    end
+
+    local api = RegisterAnalytics()
+    if not api or type(api.SetCounter) ~= "function" then
         return false
     end
 
-    -- Do not mark evidence as sent when the real WagoAnalytics addon is absent.
-    -- The shim remains safe/no-op in that case, but keeping the evidence unsent
-    -- makes the state truthful for the current session.
-    if not IsWagoAnalyticsLoaded() then
+    local ok = pcall(api.SetCounter, api, metric, value)
+    if not ok then
+        return false
+    end
+
+    stateSentThisSession[key] = value
+    return true
+end
+
+local function ReportPhaseEvidenceSingle(questID, evidence, mapID)
+    if type(questID) ~= "number" or questID <= 0 or not REPORTABLE_EVIDENCE[evidence] then
+        return false
+    end
+
+    if IsOnTaxi() or not IsWagoAnalyticsLoaded() then
         return false
     end
 
@@ -281,16 +371,14 @@ local function ReportEvidence(questID, evidence, mapID)
 
     local faction = PlayerFaction()
     local key = table.concat({
-        "phase",
-        tostring(mapID),
-        faction,
-        phase,
-        tostring(questID),
-        evidence,
-        tostring(source),
+        "phase", tostring(mapID), faction, phase, tostring(questID), evidence, tostring(source),
     }, ":")
 
     if sentThisSession[key] then
+        SetCompletionCounter(
+            PhaseCompletionMetricName(mapID, faction, phase, questID, source),
+            IsCompleted(questID)
+        )
         return true
     end
 
@@ -300,6 +388,10 @@ local function ReportEvidence(questID, evidence, mapID)
     end
 
     local metric = PhaseMetricName(mapID, faction, phase, questID, evidence, source)
+    if not ValidMetricName(metric) then
+        return false
+    end
+
     local ok = pcall(api.IncrementCounter, api, metric, 1)
     if not ok then
         return false
@@ -308,63 +400,36 @@ local function ReportEvidence(questID, evidence, mapID)
     sentThisSession[key] = true
     phaseSentCount = phaseSentCount + 1
     pcall(api.IncrementCounter, api, "phase_evidence_total", 1)
+    SetCompletionCounter(
+        PhaseCompletionMetricName(mapID, faction, phase, questID, source),
+        IsCompleted(questID)
+    )
+    ReportDiscoverySwitch(
+        PhaseQuestDiscoverySwitchName(mapID, faction, phase, questID, evidence, source),
+        true
+    )
     return true
 end
 
-local function ReportMapQuestEvidence(questID, evidence, mapID)
-    if type(questID) ~= "number" or questID <= 0 or not STRONG_EVIDENCE[evidence] then
+local function ReportEvidence(questID, evidence, mapID)
+    evidence = evidence or "seen"
+    if not REPORTABLE_EVIDENCE[evidence] then
         return false
     end
 
-    -- Map/quest crowd data should describe where a quest is actually observable,
-    -- not a continent or flyover zone temporarily reported during a taxi ride.
-    if IsOnTaxi() then
-        return false
+    local seenOK = true
+    if evidence ~= "seen" then
+        seenOK = ReportPhaseEvidenceSingle(questID, "seen", mapID)
     end
-
-    if not IsWagoAnalyticsLoaded() then
-        return false
-    end
-
-    mapID = mapID or CurrentMapID()
-    if type(mapID) ~= "number" or mapID <= 0 then
-        return false
-    end
-
-    local faction = PlayerFaction()
-    local key = table.concat({
-        "mapquest",
-        tostring(mapID),
-        faction,
-        tostring(questID),
-        evidence,
-    }, ":")
-
-    if sentThisSession[key] then
-        return true
-    end
-
-    local api = RegisterAnalytics()
-    if not api or type(api.IncrementCounter) ~= "function" then
-        return false
-    end
-
-    local metric = MapQuestMetricName(mapID, faction, questID, evidence)
-    local ok = pcall(api.IncrementCounter, api, metric, 1)
-    if not ok then
-        return false
-    end
-
-    sentThisSession[key] = true
-    mapQuestSentCount = mapQuestSentCount + 1
-    pcall(api.IncrementCounter, api, "map_quest_evidence_total", 1)
-    return true
+    local evidenceOK = ReportPhaseEvidenceSingle(questID, evidence, mapID)
+    return evidenceOK or seenOK
 end
 
-local function ReportMapVisit(mapID)
-    -- A map visit is deliberately coarse telemetry: map ID + faction only,
-    -- once per UI session. It is not a breadcrumb trail and never sends
-    -- coordinates, subzone names, timestamps, or character/account identity.
+local function ReportMapQuestEvidenceSingle(questID, evidence, mapID)
+    if type(questID) ~= "number" or questID <= 0 or not REPORTABLE_EVIDENCE[evidence] then
+        return false
+    end
+
     if IsOnTaxi() or not IsWagoAnalyticsLoaded() then
         return false
     end
@@ -376,11 +441,69 @@ local function ReportMapVisit(mapID)
 
     local faction = PlayerFaction()
     local key = table.concat({
-        "mapvisit",
-        tostring(mapID),
-        faction,
+        "mapquest", tostring(mapID), faction, tostring(questID), evidence,
     }, ":")
 
+    if sentThisSession[key] then
+        SetCompletionCounter(
+            MapQuestCompletionMetricName(mapID, faction, questID),
+            IsCompleted(questID)
+        )
+        return true
+    end
+
+    local api = RegisterAnalytics()
+    if not api or type(api.IncrementCounter) ~= "function" then
+        return false
+    end
+
+    local metric = MapQuestMetricName(mapID, faction, questID, evidence)
+    if not ValidMetricName(metric) then
+        return false
+    end
+
+    local ok = pcall(api.IncrementCounter, api, metric, 1)
+    if not ok then
+        return false
+    end
+
+    sentThisSession[key] = true
+    mapQuestSentCount = mapQuestSentCount + 1
+    pcall(api.IncrementCounter, api, "map_quest_evidence_total", 1)
+    SetCompletionCounter(
+        MapQuestCompletionMetricName(mapID, faction, questID),
+        IsCompleted(questID)
+    )
+    ReportDiscoverySwitch(MapQuestDiscoverySwitchName(mapID, faction, questID, evidence), true)
+    return true
+end
+
+local function ReportMapQuestEvidence(questID, evidence, mapID)
+    evidence = evidence or "seen"
+    if not REPORTABLE_EVIDENCE[evidence] then
+        return false
+    end
+
+    local seenOK = true
+    if evidence ~= "seen" then
+        seenOK = ReportMapQuestEvidenceSingle(questID, "seen", mapID)
+    end
+    local evidenceOK = ReportMapQuestEvidenceSingle(questID, evidence, mapID)
+    return evidenceOK or seenOK
+end
+
+local function ReportMapVisit(mapID)
+    if IsOnTaxi() or not IsWagoAnalyticsLoaded() then
+        return false
+    end
+
+    mapID = mapID or CurrentMapID()
+    if type(mapID) ~= "number" or mapID <= 0 then
+        return false
+    end
+
+    local faction = PlayerFaction()
+    local key = table.concat({ "mapvisit", tostring(mapID), faction }, ":")
     if sentThisSession[key] then
         return true
     end
@@ -391,7 +514,7 @@ local function ReportMapVisit(mapID)
     end
 
     local metric = MapVisitMetricName(mapID, faction)
-    local ok = pcall(api.IncrementCounter, api, metric, 1)
+    local ok = ValidMetricName(metric) and pcall(api.IncrementCounter, api, metric, 1)
     if not ok then
         return false
     end
@@ -399,14 +522,11 @@ local function ReportMapVisit(mapID)
     sentThisSession[key] = true
     mapVisitSentCount = mapVisitSentCount + 1
     pcall(api.IncrementCounter, api, "map_visit_total", 1)
-    ReportDiscoverySwitch(MapDiscoverySwitchName(mapID, faction))
+    ReportDiscoverySwitch(MapDiscoverySwitchName(mapID, faction), false)
     return true
 end
 
 local function ReportPhaseVisit(mapID)
-    -- Phase visits are sent only when the same trustworthy phase sources used by
-    -- phase quest evidence are available. UNKNOWN/auto/manual states are not
-    -- promoted into community phase telemetry.
     if IsOnTaxi() or not IsWagoAnalyticsLoaded() then
         return false
     end
@@ -422,14 +542,7 @@ local function ReportPhaseVisit(mapID)
     end
 
     local faction = PlayerFaction()
-    local key = table.concat({
-        "phasevisit",
-        tostring(mapID),
-        faction,
-        phase,
-        tostring(source),
-    }, ":")
-
+    local key = table.concat({ "phasevisit", tostring(mapID), faction, phase, tostring(source) }, ":")
     if sentThisSession[key] then
         return true
     end
@@ -440,7 +553,7 @@ local function ReportPhaseVisit(mapID)
     end
 
     local metric = PhaseVisitMetricName(mapID, faction, phase, source)
-    local ok = pcall(api.IncrementCounter, api, metric, 1)
+    local ok = ValidMetricName(metric) and pcall(api.IncrementCounter, api, metric, 1)
     if not ok then
         return false
     end
@@ -448,7 +561,7 @@ local function ReportPhaseVisit(mapID)
     sentThisSession[key] = true
     phaseVisitSentCount = phaseVisitSentCount + 1
     pcall(api.IncrementCounter, api, "phase_visit_total", 1)
-    ReportDiscoverySwitch(PhaseDiscoverySwitchName(mapID, faction, phase, source))
+    ReportDiscoverySwitch(PhaseDiscoverySwitchName(mapID, faction, phase, source), false)
     return true
 end
 
@@ -461,14 +574,13 @@ local function ReportInstanceFingerprint(info)
         return false
     end
 
-    -- Community instance fingerprints intentionally contain only coarse IDs,
-    -- instance type, faction, and group-size fields. Localized instance/scenario
-    -- names, coordinates, timestamps, character/account identity, and group
-    -- member information are never included in the Wago metric key.
     local faction = tostring(info.faction or PlayerFaction()):lower()
     local metric = InstanceVisitMetricName(info, faction)
-    local key = "instance:" .. metric
+    if not ValidMetricName(metric) then
+        return false
+    end
 
+    local key = "instance:" .. metric
     if sentThisSession[key] then
         return true
     end
@@ -486,7 +598,7 @@ local function ReportInstanceFingerprint(info)
     sentThisSession[key] = true
     instanceVisitSentCount = instanceVisitSentCount + 1
     pcall(api.IncrementCounter, api, "instance_visit_total", 1)
-    ReportDiscoverySwitch(InstanceDiscoverySwitchName(info, faction))
+    ReportDiscoverySwitch(InstanceDiscoverySwitchName(info, faction), false)
     return true
 end
 
@@ -500,10 +612,28 @@ local function ScanVisitEvidence()
     ReportPhaseVisit(mapID)
 end
 
+local function ScanAcceptedQuestEvidence()
+    local mapID = CurrentMapID()
+    if IsOnTaxi() or not mapID or not C_QuestLog or not C_QuestLog.GetQuestsOnMap then
+        return
+    end
+
+    local ok, quests = pcall(C_QuestLog.GetQuestsOnMap, mapID)
+    if not ok or type(quests) ~= "table" then
+        return
+    end
+
+    for _, info in ipairs(quests) do
+        if info and info.questID then
+            ReportMapQuestEvidence(info.questID, "accepted", mapID)
+            ReportEvidence(info.questID, "accepted", mapID)
+        end
+    end
+end
+
 local function ScanAvailableQuestLines()
     local mapID = CurrentMapID()
-    local phase = GetReportablePhase(mapID)
-    if IsOnTaxi() or not mapID or not phase or not C_QuestLine or not C_QuestLine.GetAvailableQuestLines then
+    if IsOnTaxi() or not mapID or not C_QuestLine or not C_QuestLine.GetAvailableQuestLines then
         return
     end
 
@@ -514,6 +644,10 @@ local function ScanAvailableQuestLines()
 
     for _, info in ipairs(lines) do
         if info and info.questID then
+            -- Keep this evidence because it is useful, but preserve the evidence
+            -- label so downstream analysis can treat it as a map/API hint rather
+            -- than proof that an NPC currently offers the quest in this phase.
+            ReportMapQuestEvidence(info.questID, "available", mapID)
             ReportEvidence(info.questID, "available", mapID)
         end
     end
@@ -521,8 +655,7 @@ end
 
 local function ScanGossipEvidence()
     local mapID = CurrentMapID()
-    local phase = GetReportablePhase(mapID)
-    if not mapID or not phase or not C_GossipInfo then
+    if not mapID or not C_GossipInfo then
         return
     end
 
@@ -531,6 +664,7 @@ local function ScanGossipEvidence()
         if ok and type(quests) == "table" then
             for _, info in ipairs(quests) do
                 if info and info.questID then
+                    ReportMapQuestEvidence(info.questID, "offered", mapID)
                     ReportEvidence(info.questID, "offered", mapID)
                 end
             end
@@ -542,6 +676,7 @@ local function ScanGossipEvidence()
         if ok and type(quests) == "table" then
             for _, info in ipairs(quests) do
                 if info and info.questID then
+                    ReportMapQuestEvidence(info.questID, "active", mapID)
                     ReportEvidence(info.questID, "active", mapID)
                 end
             end
@@ -556,12 +691,13 @@ local function CaptureQuestDetail()
 
     local questID = GetQuestID()
     if questID and questID > 0 then
+        ReportMapQuestEvidence(questID, "offered")
         ReportEvidence(questID, "offered")
     end
 end
 
 local scanScheduled = false
-local function ScheduleAvailableScan(delay)
+local function ScheduleQuestScan(delay)
     if scanScheduled then
         return
     end
@@ -569,6 +705,7 @@ local function ScheduleAvailableScan(delay)
     scanScheduled = true
     C_Timer.After(delay or 0.3, function()
         scanScheduled = false
+        ScanAcceptedQuestEvidence()
         ScanAvailableQuestLines()
     end)
 end
@@ -592,17 +729,35 @@ events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 events:RegisterEvent("ZONE_CHANGED")
 events:RegisterEvent("QUEST_LOG_UPDATE")
 events:RegisterEvent("QUESTLINE_UPDATE")
+events:RegisterEvent("QUEST_ACCEPTED")
 events:RegisterEvent("QUEST_TURNED_IN")
 events:RegisterEvent("QUEST_DETAIL")
 events:RegisterEvent("GOSSIP_SHOW")
 pcall(events.RegisterEvent, events, "UNIT_PHASE")
 
-events:SetScript("OnEvent", function(_, event, arg1)
+events:SetScript("OnEvent", function(_, event, arg1, arg2)
+    if event == "QUEST_ACCEPTED" then
+        local questID = arg2
+        if type(questID) ~= "number" or questID <= 0 then
+            if type(arg1) == "number" and C_QuestLog and C_QuestLog.GetInfo then
+                local info = C_QuestLog.GetInfo(arg1)
+                questID = info and info.questID or nil
+            end
+        end
+        if type(questID) == "number" and questID > 0 then
+            ReportMapQuestEvidence(questID, "accepted")
+            ReportEvidence(questID, "accepted")
+        end
+        ScheduleQuestScan(0.2)
+        return
+    end
+
     if event == "QUEST_TURNED_IN" then
         if type(arg1) == "number" and arg1 > 0 then
+            ReportMapQuestEvidence(arg1, "turnedIn")
             ReportEvidence(arg1, "turnedIn")
         end
-        ScheduleAvailableScan(0.3)
+        ScheduleQuestScan(0.3)
         return
     end
 
@@ -613,10 +768,11 @@ events:SetScript("OnEvent", function(_, event, arg1)
 
     if event == "GOSSIP_SHOW" then
         C_Timer.After(0.15, function()
-            -- Zidormi handlers are loaded before this module, so a short delay
-            -- lets their gossip-derived phase settle before phase-visit capture.
+            -- Timeline handlers load before this module. Give their Zidormi
+            -- classification a moment to settle before capturing phase evidence.
             ScanVisitEvidence()
             ScanGossipEvidence()
+            ScanAcceptedQuestEvidence()
             ScanAvailableQuestLines()
         end)
         return
@@ -625,20 +781,17 @@ events:SetScript("OnEvent", function(_, event, arg1)
     if event == "PLAYER_ENTERING_WORLD" then
         C_Timer.After(1.0, function()
             ScanVisitEvidence()
+            ScanAcceptedQuestEvidence()
             ScanAvailableQuestLines()
         end)
     elseif event == "ZONE_CHANGED_NEW_AREA" or event == "UNIT_PHASE" then
         ScheduleVisitScan(0.6)
-        ScheduleAvailableScan(0.6)
+        ScheduleQuestScan(0.6)
     elseif event == "ZONE_CHANGED" then
-        -- ZONE_CHANGED also fires while moving between named subzones. The
-        -- session-dedupe key means repeated movement inside the same UiMapID does
-        -- not create additional Wago counters or dashboard-visible switches, but
-        -- a newly reported map can.
         ScheduleVisitScan(0.3)
-        ScheduleAvailableScan(0.3)
+        ScheduleQuestScan(0.3)
     else
-        ScheduleAvailableScan(0.3)
+        ScheduleQuestScan(0.3)
     end
 end)
 
