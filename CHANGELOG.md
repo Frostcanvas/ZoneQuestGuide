@@ -1,5 +1,21 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.25 - August 16, 2026 - Available on GitHub**
+
+* **Added** dashboard-visible Wago discovery switches for the crowdsourced observations that are most useful while Wago's Counters dashboard is not yet available. A real map visit can now mirror to `seen_map_m<map>_<faction>`, a reliable timeline visit can mirror to `seen_phase_m<map>_<faction>_<phase>_src_<source>`, and an instance fingerprint can mirror to `seen_instance_m<map>_i<instance>_d<difficulty>_lfg<id>_max<players>_grp<size>_<type>_<faction>`.
+
+* **Added** a `discovery_switch_mirroring_enabled` Wago feature switch so the Analytics Switches page can show that a client is running the new mirror path even before it encounters a new map or instance.
+
+* **Improved** discovery-switch data quality by reusing the same taxi suppression and reliable-phase rules as the underlying visit telemetry, deduplicating each discovery switch for the current UI session, and capping dynamic discovery switches at 200 per session so unusually long exploration sessions do not crowd out normal Wago feature switches.
+
+* **Improved** `/zq wago` and `/zq check` diagnostics with a `discoveries` count showing how many dashboard-visible discovery switches were queued during the current UI session.
+
+* **Changed** the new switches to mirror rather than replace the existing Wago counters. Zone Quest Guide continues to send `mapvisit`, `phasevisit`, `instancevisit`, and their total counters so that richer aggregate counts remain available when Wago exposes the Counters dashboard.
+
+*The existing v0.2.24 path was observed in World of Warcraft before this release: Alliance Heroic Battle for Stromgarde returned `1044 / Arathi Highlands`, instance `1943 / Warfronts Arathi - Alliance`, type `scenario`, difficulty `149 / Heroic`, `maxPlayers=30`, `groupSize=10`, `LFG=2007`, scenario `The Battle for Stromgarde`, and `/zq check` showed `instancevisit=1`. The Wago website also displayed ZoneQuestGuide's existing feature switches, confirming that switch data reached the Analytics dashboard. The new v0.2.25 dynamic `seen_map`, `seen_phase`, and `seen_instance` switches have not yet been tested in World of Warcraft. After updating and `/reload`, verify `/zq check` shows `discoveries` increasing, verify the corresponding `seen_...` names appear under Wago Analytics -> Switches after the Wago App uploads, verify repeated movement in the same map/instance does not repeatedly increment the discovery count, and confirm taxi-flight suppression and the existing privacy exclusions remain intact. Wago's Counters page currently says the dashboard will be released later, so counter receipt still cannot be inspected there. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.24 - August 16, 2026 - Available on GitHub**
 
 * **Added** account-wide instance/scenario fingerprint learning for instanced content such as Warfronts, scenarios, raids, and dungeons. When the player actually enters an instance, Zone Quest Guide can record the live `UiMapID`, parent map when available, instance ID/type, difficulty ID/name, maximum/group-size values, LFG dungeon ID, scenario metadata, faction, and current timeline/source without storing character or group-member identity.
