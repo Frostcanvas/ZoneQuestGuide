@@ -7,6 +7,8 @@ local analyticsRegistered = false
 local sentThisSession = {}
 local phaseSentCount = 0
 local mapQuestSentCount = 0
+local mapVisitSentCount = 0
+local phaseVisitSentCount = 0
 
 local STRONG_EVIDENCE = {
     available = true,
@@ -97,6 +99,8 @@ local function RegisterAnalytics()
     if IsWagoAnalyticsLoaded() and type(analytics.Switch) == "function" then
         pcall(analytics.Switch, analytics, "phase_learning_enabled", true)
         pcall(analytics.Switch, analytics, "map_quest_learning_enabled", true)
+        pcall(analytics.Switch, analytics, "map_visit_learning_enabled", true)
+        pcall(analytics.Switch, analytics, "phase_visit_learning_enabled", true)
     end
 
     return analytics
@@ -138,6 +142,25 @@ local function MapQuestMetricName(mapID, faction, questID, evidence)
         SafeToken(faction),
         "q" .. SafeToken(questID),
         SafeToken(evidence),
+    }, "_")
+end
+
+local function MapVisitMetricName(mapID, faction)
+    return table.concat({
+        "mapvisit",
+        "m" .. SafeToken(mapID),
+        SafeToken(faction),
+    }, "_")
+end
+
+local function PhaseVisitMetricName(mapID, faction, phase, source)
+    return table.concat({
+        "phasevisit",
+        "m" .. SafeToken(mapID),
+        SafeToken(faction),
+        SafeToken(phase),
+        "src",
+        SafeToken(source),
     }, "_")
 end
 
@@ -247,6 +270,105 @@ local function ReportMapQuestEvidence(questID, evidence, mapID)
     return true
 end
 
+local function ReportMapVisit(mapID)
+    -- A map visit is deliberately coarse telemetry: map ID + faction only,
+    -- once per UI session. It is not a breadcrumb trail and never sends
+    -- coordinates, subzone names, timestamps, or character/account identity.
+    if IsOnTaxi() or not IsWagoAnalyticsLoaded() then
+        return false
+    end
+
+    mapID = mapID or CurrentMapID()
+    if type(mapID) ~= "number" or mapID <= 0 then
+        return false
+    end
+
+    local faction = PlayerFaction()
+    local key = table.concat({
+        "mapvisit",
+        tostring(mapID),
+        faction,
+    }, ":")
+
+    if sentThisSession[key] then
+        return true
+    end
+
+    local api = RegisterAnalytics()
+    if not api or type(api.IncrementCounter) ~= "function" then
+        return false
+    end
+
+    local metric = MapVisitMetricName(mapID, faction)
+    local ok = pcall(api.IncrementCounter, api, metric, 1)
+    if not ok then
+        return false
+    end
+
+    sentThisSession[key] = true
+    mapVisitSentCount = mapVisitSentCount + 1
+    pcall(api.IncrementCounter, api, "map_visit_total", 1)
+    return true
+end
+
+local function ReportPhaseVisit(mapID)
+    -- Phase visits are sent only when the same trustworthy phase sources used by
+    -- phase quest evidence are available. UNKNOWN/auto/manual states are not
+    -- promoted into community phase telemetry.
+    if IsOnTaxi() or not IsWagoAnalyticsLoaded() then
+        return false
+    end
+
+    mapID = mapID or CurrentMapID()
+    if type(mapID) ~= "number" or mapID <= 0 then
+        return false
+    end
+
+    local phase, source = GetReportablePhase(mapID)
+    if not phase then
+        return false
+    end
+
+    local faction = PlayerFaction()
+    local key = table.concat({
+        "phasevisit",
+        tostring(mapID),
+        faction,
+        phase,
+        tostring(source),
+    }, ":")
+
+    if sentThisSession[key] then
+        return true
+    end
+
+    local api = RegisterAnalytics()
+    if not api or type(api.IncrementCounter) ~= "function" then
+        return false
+    end
+
+    local metric = PhaseVisitMetricName(mapID, faction, phase, source)
+    local ok = pcall(api.IncrementCounter, api, metric, 1)
+    if not ok then
+        return false
+    end
+
+    sentThisSession[key] = true
+    phaseVisitSentCount = phaseVisitSentCount + 1
+    pcall(api.IncrementCounter, api, "phase_visit_total", 1)
+    return true
+end
+
+local function ScanVisitEvidence()
+    local mapID = CurrentMapID()
+    if not mapID or IsOnTaxi() then
+        return
+    end
+
+    ReportMapVisit(mapID)
+    ReportPhaseVisit(mapID)
+end
+
 local function ScanAvailableQuestLines()
     local mapID = CurrentMapID()
     local phase = GetReportablePhase(mapID)
@@ -320,6 +442,19 @@ local function ScheduleAvailableScan(delay)
     end)
 end
 
+local visitScanScheduled = false
+local function ScheduleVisitScan(delay)
+    if visitScanScheduled then
+        return
+    end
+
+    visitScanScheduled = true
+    C_Timer.After(delay or 0.3, function()
+        visitScanScheduled = false
+        ScanVisitEvidence()
+    end)
+end
+
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
@@ -347,6 +482,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
 
     if event == "GOSSIP_SHOW" then
         C_Timer.After(0.15, function()
+            -- Zidormi handlers are loaded before this module, so a short delay
+            -- lets their gossip-derived phase settle before phase-visit capture.
+            ScanVisitEvidence()
             ScanGossipEvidence()
             ScanAvailableQuestLines()
         end)
@@ -354,9 +492,19 @@ events:SetScript("OnEvent", function(_, event, arg1)
     end
 
     if event == "PLAYER_ENTERING_WORLD" then
-        C_Timer.After(1.0, ScanAvailableQuestLines)
+        C_Timer.After(1.0, function()
+            ScanVisitEvidence()
+            ScanAvailableQuestLines()
+        end)
     elseif event == "ZONE_CHANGED_NEW_AREA" or event == "UNIT_PHASE" then
+        ScheduleVisitScan(0.6)
         ScheduleAvailableScan(0.6)
+    elseif event == "ZONE_CHANGED" then
+        -- ZONE_CHANGED also fires while moving between named subzones. The
+        -- session-dedupe key means repeated movement inside the same UiMapID does
+        -- not create additional Wago counters, but a newly reported map can.
+        ScheduleVisitScan(0.3)
+        ScheduleAvailableScan(0.3)
     else
         ScheduleAvailableScan(0.3)
     end
@@ -375,11 +523,12 @@ local function WagoStatus()
 
     if IsWagoAnalyticsLoaded() then
         Print(string.format(
-            "Wago telemetry is registered for project %s. This session queued %d phase and %d map/quest observation%s; upload still depends on the player's Wago App Analytics sharing setting.",
+            "Wago telemetry is registered for project %s. This session queued %d phase-quest, %d map/quest, %d map-visit, and %d phase-visit observations; upload still depends on the player's Wago App Analytics sharing setting.",
             tostring(projectID),
             phaseSentCount,
             mapQuestSentCount,
-            mapQuestSentCount == 1 and "" or "s"
+            mapVisitSentCount,
+            phaseVisitSentCount
         ))
     else
         Print("Wago project " .. tostring(projectID) .. " is configured and the shim is ready, but the WagoAnalytics addon is not loaded on this client.")
@@ -402,6 +551,8 @@ end
 
 ZQG.ReportPhaseEvidenceToWago = ReportEvidence
 ZQG.ReportMapQuestEvidenceToWago = ReportMapQuestEvidence
+ZQG.ReportMapVisitToWago = ReportMapVisit
+ZQG.ReportPhaseVisitToWago = ReportPhaseVisit
 ZQG.GetWagoTelemetryStatus = function()
     return {
         projectID = projectID,
@@ -409,5 +560,7 @@ ZQG.GetWagoTelemetryStatus = function()
         providerLoaded = IsWagoAnalyticsLoaded(),
         phaseSent = phaseSentCount,
         mapQuestSent = mapQuestSentCount,
+        mapVisitSent = mapVisitSentCount,
+        phaseVisitSent = phaseVisitSentCount,
     }
 end
