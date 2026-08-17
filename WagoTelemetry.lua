@@ -9,6 +9,7 @@ local phaseSentCount = 0
 local mapQuestSentCount = 0
 local mapVisitSentCount = 0
 local phaseVisitSentCount = 0
+local instanceVisitSentCount = 0
 
 local STRONG_EVIDENCE = {
     available = true,
@@ -101,6 +102,7 @@ local function RegisterAnalytics()
         pcall(analytics.Switch, analytics, "map_quest_learning_enabled", true)
         pcall(analytics.Switch, analytics, "map_visit_learning_enabled", true)
         pcall(analytics.Switch, analytics, "phase_visit_learning_enabled", true)
+        pcall(analytics.Switch, analytics, "instance_visit_learning_enabled", true)
     end
 
     return analytics
@@ -161,6 +163,20 @@ local function PhaseVisitMetricName(mapID, faction, phase, source)
         SafeToken(phase),
         "src",
         SafeToken(source),
+    }, "_")
+end
+
+local function InstanceVisitMetricName(info, faction)
+    return table.concat({
+        "instancevisit",
+        "m" .. SafeToken(info.mapID),
+        "i" .. SafeToken(info.instanceID or 0),
+        "d" .. SafeToken(info.difficultyID or 0),
+        "lfg" .. SafeToken(info.lfgDungeonID or 0),
+        "max" .. SafeToken(info.maxPlayers or 0),
+        "grp" .. SafeToken(info.instanceGroupSize or 0),
+        SafeToken(info.instanceType or "unknown"),
+        SafeToken(faction),
     }, "_")
 end
 
@@ -359,6 +375,43 @@ local function ReportPhaseVisit(mapID)
     return true
 end
 
+local function ReportInstanceFingerprint(info)
+    if type(info) ~= "table" or not info.inInstance or not IsWagoAnalyticsLoaded() then
+        return false
+    end
+
+    if type(info.mapID) ~= "number" or info.mapID <= 0 then
+        return false
+    end
+
+    -- Community instance fingerprints intentionally contain only coarse IDs,
+    -- instance type, faction, and group-size fields. Localized instance/scenario
+    -- names, coordinates, timestamps, character/account identity, and group
+    -- member information are never included in the Wago metric key.
+    local faction = tostring(info.faction or PlayerFaction()):lower()
+    local metric = InstanceVisitMetricName(info, faction)
+    local key = "instance:" .. metric
+
+    if sentThisSession[key] then
+        return true
+    end
+
+    local api = RegisterAnalytics()
+    if not api or type(api.IncrementCounter) ~= "function" then
+        return false
+    end
+
+    local ok = pcall(api.IncrementCounter, api, metric, 1)
+    if not ok then
+        return false
+    end
+
+    sentThisSession[key] = true
+    instanceVisitSentCount = instanceVisitSentCount + 1
+    pcall(api.IncrementCounter, api, "instance_visit_total", 1)
+    return true
+end
+
 local function ScanVisitEvidence()
     local mapID = CurrentMapID()
     if not mapID or IsOnTaxi() then
@@ -523,12 +576,13 @@ local function WagoStatus()
 
     if IsWagoAnalyticsLoaded() then
         Print(string.format(
-            "Wago telemetry is registered for project %s. This session queued %d phase-quest, %d map/quest, %d map-visit, and %d phase-visit observations; upload still depends on the player's Wago App Analytics sharing setting.",
+            "Wago telemetry is registered for project %s. This session queued %d phase-quest, %d map/quest, %d map-visit, %d phase-visit, and %d instance-visit observations; upload still depends on the player's Wago App Analytics sharing setting.",
             tostring(projectID),
             phaseSentCount,
             mapQuestSentCount,
             mapVisitSentCount,
-            phaseVisitSentCount
+            phaseVisitSentCount,
+            instanceVisitSentCount
         ))
     else
         Print("Wago project " .. tostring(projectID) .. " is configured and the shim is ready, but the WagoAnalytics addon is not loaded on this client.")
@@ -553,6 +607,7 @@ ZQG.ReportPhaseEvidenceToWago = ReportEvidence
 ZQG.ReportMapQuestEvidenceToWago = ReportMapQuestEvidence
 ZQG.ReportMapVisitToWago = ReportMapVisit
 ZQG.ReportPhaseVisitToWago = ReportPhaseVisit
+ZQG.ReportInstanceFingerprintToWago = ReportInstanceFingerprint
 ZQG.GetWagoTelemetryStatus = function()
     return {
         projectID = projectID,
@@ -562,5 +617,6 @@ ZQG.GetWagoTelemetryStatus = function()
         mapQuestSent = mapQuestSentCount,
         mapVisitSent = mapVisitSentCount,
         phaseVisitSent = phaseVisitSentCount,
+        instanceVisitSent = instanceVisitSentCount,
     }
 end
