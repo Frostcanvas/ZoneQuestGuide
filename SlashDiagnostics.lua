@@ -122,11 +122,12 @@ local function PrintCheck()
         if status then
             if status.providerLoaded then
                 wagoText = string.format(
-                    "Wago loaded; session phase=%d map/quest=%d mapvisit=%d phasevisit=%d",
+                    "Wago loaded; session phase=%d map/quest=%d mapvisit=%d phasevisit=%d instancevisit=%d",
                     tonumber(status.phaseSent) or 0,
                     tonumber(status.mapQuestSent) or 0,
                     tonumber(status.mapVisitSent) or 0,
-                    tonumber(status.phaseVisitSent) or 0
+                    tonumber(status.phaseVisitSent) or 0,
+                    tonumber(status.instanceVisitSent) or 0
                 )
             elseif status.registered then
                 wagoText = "Wago registered; provider not loaded"
@@ -168,6 +169,13 @@ SlashCmdList.ZONEQUESTGUIDE = function(msg)
         return
     elseif command == "check" or command == "debug" then
         PrintCheck()
+        return
+    elseif command == "inspect" or command == "instance" then
+        if ZQG.PrintInstanceInspect then
+            ZQG.PrintInstanceInspect()
+        else
+            Print("Instance diagnostics are unavailable on this build.")
+        end
         return
     end
 
