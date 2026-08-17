@@ -1,5 +1,19 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.23 - August 16, 2026 - Available on GitHub**
+
+* **Added** anonymous Wago map-visit telemetry so Zone Quest Guide can record that a player actually entered a live `UiMapID` even when no quest is available there. Each `mapvisit_m<map>_<faction>` observation is deduplicated to once per map/faction during the current UI session.
+
+* **Added** anonymous phase-visit telemetry for maps where the timeline is known from a reliable `zidormi` or `detected` source. These `phasevisit_m<map>_<faction>_<phase>_src_<source>` observations make it possible to distinguish real visits to historical/current world states without requiring a quest to be present.
+
+* **Improved** telemetry privacy and data quality. Map/phase visits do not include coordinates, subzone names, timestamps, character names, realms, GUIDs, guilds, or account identifiers; taxi-flight observations remain suppressed, and repeated movement inside the same map does not create additional visit counters during the session.
+
+* **Improved** `/zq wago` and `/zq check` diagnostics so the current session now shows separate map-visit and phase-visit counts alongside the existing phase-quest and map/quest counters.
+
+*The new v0.2.23 visit telemetry has not yet been tested in World of Warcraft. After updating, verify `/zq check` shows `mapvisit` increasing when entering a new map, verify `phasevisit` increases only after a reliable Zidormi/detected timeline is known, verify moving among subzones on the same UiMapID does not repeatedly increment it, and verify taxi flights do not create flyover visits. Wago dashboard/server receipt of the new counters also still needs separate verification. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.22 - August 16, 2026 - Available on GitHub**
 
 * **Added** supplemental quest availability rules for cases where WoW progression makes an older quest impossible to obtain. Database records can now use `blockedBy = { ... }` to hide a quest after any listed blocker quest has been completed.
@@ -326,7 +340,7 @@
 
 * **Added** distance and travel-time information to the floating navigation HUD. When WoW exposes enough map/world-position information for the selected quest, Zone Quest Guide estimates the remaining distance in yards. While the character is moving, it also estimates travel time from the current movement speed. Quests without usable world-position data continue to show normal tracking information instead.
 
-* **Added** **Shift-drag** positioning for the floating arrow. Its position is saved between sessions. `/zq arrow` toggles it and `/zq arrow reset` restores its default position.
+* **Added** **Shift-drag** positioning for the floating arrow. Its position is saved between sessions. `/zq arrow` toggles it and `/zq arrow reset` restores the default position.
 
 * **Improved** navigation while using flight paths. WoW can report intermediate zone changes while a taxi flies across several maps, which could make a quest guide briefly replace the go-to destination with a quest from a zone the player was only passing over. Zone Quest Guide now keeps its floating HUD and addon-owned destination on the last stable quest while a taxi crosses into another map, then refreshes for the zone where the character actually lands.
 
