@@ -122,9 +122,11 @@ local function PrintCheck()
         if status then
             if status.providerLoaded then
                 wagoText = string.format(
-                    "Wago loaded; session phase=%d map/quest=%d",
+                    "Wago loaded; session phase=%d map/quest=%d mapvisit=%d phasevisit=%d",
                     tonumber(status.phaseSent) or 0,
-                    tonumber(status.mapQuestSent) or 0
+                    tonumber(status.mapQuestSent) or 0,
+                    tonumber(status.mapVisitSent) or 0,
+                    tonumber(status.phaseVisitSent) or 0
                 )
             elseif status.registered then
                 wagoText = "Wago registered; provider not loaded"
