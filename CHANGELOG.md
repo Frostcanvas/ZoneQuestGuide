@@ -1,5 +1,23 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.26 - August 16, 2026 - Available on GitHub**
+
+* **Added** fuller anonymous Wago research telemetry so the automatic crowd dataset can preserve the same quest-evidence classes used by the local export: `seen`, `available`, `offered`, `accepted`, `active`, and `turnedIn`. Each evidence type remains separately labeled so map/API hints and carried accepted quests can be analyzed differently from stronger NPC-offer, active-NPC, and turn-in observations.
+
+* **Added** Wago completion-state counters for phase-aware and general map/quest observations. The addon now records a `0` or `1` completion state alongside the quest's map/faction context, allowing the crowd dataset to retain the export's completion-support signal without putting character identity into metric names.
+
+* **Added** dashboard-visible `seen_quest_...` and `seen_mapquest_...` discovery switches for quest observations. Quest discovery mirrors share the existing 200-switch session ceiling but are limited to 150 of those slots so long questing sessions leave room for map, phase, and instance fingerprints; the complete evidence stream continues through counters even if the switch mirror reaches its cap.
+
+* **Improved** automatic accepted-quest coverage. Zone Quest Guide now scans quests actually present in the player's quest log for the current map and sends them as explicitly weak `accepted` evidence instead of dropping them from Wago entirely. It also emits a generic `seen` observation for every reported quest record, matching the structure of the local learning export more closely.
+
+* **Improved** instance telemetry so the Wago fingerprint now carries the export's non-name context where available: parent map ID, scenario type/area/texture-kit values, instance type, faction, and current phase/source in addition to map, instance, difficulty, LFG, maximum-player, and group-size IDs. Localized map, quest, difficulty, instance, and scenario names remain local rather than becoming Wago metric keys.
+
+* **Changed** `available` evidence to remain in Wago as a useful map/API hint instead of being treated as proof that the quest exists in the current timeline. The evidence label is preserved so later analysis can require `offered`, `active`, or `turnedIn` when confirming that a quest genuinely exists in a specific world state.
+
+*The v0.2.26 telemetry expansion has not yet been tested in World of Warcraft. After updating, `/reload`, run `/zq check`, interact with an NPC that offers a quest, accept a quest, and if practical turn one in. Verify the phase/map-quest session counts rise, verify `discoveries` rises while under the switch cap, and after the Wago App uploads check Analytics -> Switches for new `seen_quest_...` or `seen_mapquest_...` entries. Also re-enter the live-tested Heroic Battle for Stromgarde if convenient and confirm the richer instance fingerprint does not exceed Wago's metric-name limit or suppress `instancevisit`. Wago's Counters dashboard is still unavailable for direct inspection, so counter receipt cannot yet be verified there. This release has not been tested successfully in WoW yet, and Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.25 - August 16, 2026 - Available on GitHub**
 
 * **Added** dashboard-visible Wago discovery switches for the crowdsourced observations that are most useful while Wago's Counters dashboard is not yet available. A real map visit can now mirror to `seen_map_m<map>_<faction>`, a reliable timeline visit can mirror to `seen_phase_m<map>_<faction>_<phase>_src_<source>`, and an instance fingerprint can mirror to `seen_instance_m<map>_i<instance>_d<difficulty>_lfg<id>_max<players>_grp<size>_<type>_<faction>`.
@@ -186,7 +204,7 @@
 
 **VERSION 0.2.12 - August 16, 2026 - Available on GitHub**
 
-* **Added** a central Retail timeline-zone registry covering the known Zidormi/Rhonormu world-state switches: Dustwallow Marsh/Theramore, Blasted Lands, Peak of Serenity, Silithus, Darkshore, Tirisfal Glades, Arathi Highlands, Uldum, Vale of Eternal Blossoms, and the newer Quel'Thalas switch for Eversong Woods/Ghostlands at Thalassian Pass. Silithus also recognizes Rhonormu as a valid timeline NPC.
+* **Added** a central Retail timeline-zone registry covering the known Zidormi/Rhonormu world-state switches: Dustwallow Marsh/Theramore, Blasted Lands, Peak of Serenity, Silithus, Darkshore, Tirisfal Glades/Undercity, Arathi Highlands, Uldum, Vale of Eternal Blossoms, and the newer Quel'Thalas switch for Eversong Woods/Ghostlands at Thalassian Pass. Silithus also recognizes Rhonormu as a valid timeline NPC.
 
 * **Fixed** phased zones that could look like ordinary zones until the player first spoke to Zidormi. Darkshore in particular can use several Retail map IDs; Zone Quest Guide now recognizes known alternate map IDs and can also match the live map/subzone name, so the **Timeline: UNKNOWN - talk to Zidormi before questing.** warning can appear before questing starts.
 
@@ -388,7 +406,7 @@
 
 * **Improved** Blasted Lands phase handling based on the in-game Zidormi wording observed during testing. If Zidormi offers **"Take me back to the present."**, Zone Quest Guide treats the current version as **PAST**. If Zidormi instead offers to show the zone **before** an invasion/event or otherwise travel to the past, the character is currently in the **PRESENT** version.
 
-  Previously, the phase framework could refresh when WoW reported phase-related changes, but it still needed a zone-specific detector or manual override to know which phase was actually active. Zidormi's own gossip option gives a much stronger clue because the destination she offers is the opposite of the current timeline.
+  Previously, the phase framework could refresh when WoW reported a phase-related change, but it still needed a zone-specific detector or manual override to know which phase was actually active. Zidormi's own gossip option gives a much stronger clue because the destination she offers is the opposite of the current timeline.
 
 * **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
 
