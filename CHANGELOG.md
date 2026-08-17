@@ -1,5 +1,21 @@
 # ZoneQuestGuide Changelog
 
+**VERSION 0.2.24 - August 16, 2026 - Available on GitHub**
+
+* **Added** account-wide instance/scenario fingerprint learning for instanced content such as Warfronts, scenarios, raids, and dungeons. When the player actually enters an instance, Zone Quest Guide can record the live `UiMapID`, parent map when available, instance ID/type, difficulty ID/name, maximum/group-size values, LFG dungeon ID, scenario metadata, faction, and current timeline/source without storing character or group-member identity.
+
+* **Added** `/zq inspect` (also `/zq instance`) to print a compact live diagnostic for the current map and instance, including parent map, instance ID/name/type, difficulty, LFG ID, scenario, faction, and timeline. `/zq instanceexport` opens the new `ZQGINSTANCEDATA|1` block, while `/zq export` now includes phase, map/quest, and instance-learning data together.
+
+* **Added** anonymous Wago instance-visit telemetry. Each distinct in-instance fingerprint can increment an `instancevisit_m<map>_i<instance>_d<difficulty>_lfg<id>_max<players>_grp<size>_<type>_<faction>` counter once per UI session plus `instance_visit_total`. Localized instance/scenario names are intentionally not sent in Wago metric keys.
+
+* **Improved** `/zq wago` and `/zq check` so the current session also reports an `instancevisit` count. This should make it much easier to verify whether Normal and Heroic Warfronts use the same map/instance context or different difficulty/LFG fingerprints.
+
+* **Improved** privacy for community map research. Automatic instance telemetry does not include character names, realms, GUIDs, guilds, account identifiers, party/raid member names, chat, coordinates, timestamps, instance names, or scenario names. The more descriptive names remain only in the local/manual export that the player explicitly chooses whether to copy.
+
+*The new v0.2.24 instance learning, `/zq inspect`, combined export, and Wago instance counters have not yet been tested in World of Warcraft. After updating and `/reload`, first verify `/zq inspect` works outdoors, then enter Heroic Battle for Stromgarde and run `/zq inspect` plus `/zq check` immediately after loading and again once the Warfront starts. Confirm `instancevisit` increases only once for the fingerprint, compare Normal Stromgarde if available, verify `ZQGINSTANCEDATA|1` exports cleanly, and separately confirm `instancevisit_m...` plus `instance_visit_total` reach the Wago development dashboard. Existing v0.2.23 map/phase-visit and taxi-suppression checks are still outstanding. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
 **VERSION 0.2.23 - August 16, 2026 - Available on GitHub**
 
 * **Added** anonymous Wago map-visit telemetry so Zone Quest Guide can record that a player actually entered a live `UiMapID` even when no quest is available there. Each `mapvisit_m<map>_<faction>` observation is deduplicated to once per map/faction during the current UI session.
@@ -272,7 +288,7 @@
 
 * **Added** automatic timeline detection from curated phase-exclusive quests. When WoW reports a known phase-specific quest as active on the current map or as an available quest-line starter, Zone Quest Guide can use that live quest evidence to identify the historical version without requiring a new Zidormi conversation every session.
 
-* **Improved** Blasted Lands detection for the currently mapped Iron Horde quests. **Under Siege** and **Attack of the Iron Horde** are known PRESENT/Iron Horde quests, so either quest can now establish the Blasted Lands timeline as PRESENT when WoW exposes it on the current map.
+* **Improved** Blasted Lands detection for the currently mapped Iron Horde quests. **Under Siege** and **Attack of the Iron Horde** are known PRESENT/Iron-Horde quests, so either quest can now establish the Blasted Lands timeline as PRESENT when WoW exposes it on the current map.
 
 * **Added** a dedicated **Timeline** line directly below the current zone name in the main Zone Quest Guide window. Supported zones can now show player-facing text such as **PRESENT / Iron Horde (quest detected)**, **PAST / Before invasion (Zidormi)**, or **UNKNOWN (auto)** instead of hiding the phase state inside the zone subtitle.
 
