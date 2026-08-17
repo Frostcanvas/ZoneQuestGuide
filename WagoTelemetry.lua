@@ -5,11 +5,14 @@ local projectID = GetAddOnMetadata and GetAddOnMetadata(ADDON_NAME, "X-Wago-ID")
 local analytics
 local analyticsRegistered = false
 local sentThisSession = {}
+local discoverySwitchesThisSession = {}
 local phaseSentCount = 0
 local mapQuestSentCount = 0
 local mapVisitSentCount = 0
 local phaseVisitSentCount = 0
 local instanceVisitSentCount = 0
+local discoverySwitchSentCount = 0
+local MAX_DISCOVERY_SWITCHES_PER_SESSION = 200
 
 local STRONG_EVIDENCE = {
     available = true,
@@ -103,6 +106,7 @@ local function RegisterAnalytics()
         pcall(analytics.Switch, analytics, "map_visit_learning_enabled", true)
         pcall(analytics.Switch, analytics, "phase_visit_learning_enabled", true)
         pcall(analytics.Switch, analytics, "instance_visit_learning_enabled", true)
+        pcall(analytics.Switch, analytics, "discovery_switch_mirroring_enabled", true)
     end
 
     return analytics
@@ -178,6 +182,77 @@ local function InstanceVisitMetricName(info, faction)
         SafeToken(info.instanceType or "unknown"),
         SafeToken(faction),
     }, "_")
+end
+
+local function MapDiscoverySwitchName(mapID, faction)
+    return table.concat({
+        "seen",
+        "map",
+        "m" .. SafeToken(mapID),
+        SafeToken(faction),
+    }, "_")
+end
+
+local function PhaseDiscoverySwitchName(mapID, faction, phase, source)
+    return table.concat({
+        "seen",
+        "phase",
+        "m" .. SafeToken(mapID),
+        SafeToken(faction),
+        SafeToken(phase),
+        "src",
+        SafeToken(source),
+    }, "_")
+end
+
+local function InstanceDiscoverySwitchName(info, faction)
+    return table.concat({
+        "seen",
+        "instance",
+        "m" .. SafeToken(info.mapID),
+        "i" .. SafeToken(info.instanceID or 0),
+        "d" .. SafeToken(info.difficultyID or 0),
+        "lfg" .. SafeToken(info.lfgDungeonID or 0),
+        "max" .. SafeToken(info.maxPlayers or 0),
+        "grp" .. SafeToken(info.instanceGroupSize or 0),
+        SafeToken(info.instanceType or "unknown"),
+        SafeToken(faction),
+    }, "_")
+end
+
+local function ReportDiscoverySwitch(name)
+    if type(name) ~= "string" or name == "" or #name > 128 then
+        return false
+    end
+
+    if discoverySwitchesThisSession[name] then
+        return true
+    end
+
+    -- WagoAnalytics currently allows hundreds of switch variables per addon,
+    -- but discovery mirrors should never crowd out the addon's normal feature
+    -- switches during unusually long exploration sessions.
+    if discoverySwitchSentCount >= MAX_DISCOVERY_SWITCHES_PER_SESSION then
+        return false
+    end
+
+    if not IsWagoAnalyticsLoaded() then
+        return false
+    end
+
+    local api = RegisterAnalytics()
+    if not api or type(api.Switch) ~= "function" then
+        return false
+    end
+
+    local ok = pcall(api.Switch, api, name, true)
+    if not ok then
+        return false
+    end
+
+    discoverySwitchesThisSession[name] = true
+    discoverySwitchSentCount = discoverySwitchSentCount + 1
+    return true
 end
 
 local function ReportEvidence(questID, evidence, mapID)
@@ -324,6 +399,7 @@ local function ReportMapVisit(mapID)
     sentThisSession[key] = true
     mapVisitSentCount = mapVisitSentCount + 1
     pcall(api.IncrementCounter, api, "map_visit_total", 1)
+    ReportDiscoverySwitch(MapDiscoverySwitchName(mapID, faction))
     return true
 end
 
@@ -372,6 +448,7 @@ local function ReportPhaseVisit(mapID)
     sentThisSession[key] = true
     phaseVisitSentCount = phaseVisitSentCount + 1
     pcall(api.IncrementCounter, api, "phase_visit_total", 1)
+    ReportDiscoverySwitch(PhaseDiscoverySwitchName(mapID, faction, phase, source))
     return true
 end
 
@@ -409,6 +486,7 @@ local function ReportInstanceFingerprint(info)
     sentThisSession[key] = true
     instanceVisitSentCount = instanceVisitSentCount + 1
     pcall(api.IncrementCounter, api, "instance_visit_total", 1)
+    ReportDiscoverySwitch(InstanceDiscoverySwitchName(info, faction))
     return true
 end
 
@@ -555,7 +633,8 @@ events:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "ZONE_CHANGED" then
         -- ZONE_CHANGED also fires while moving between named subzones. The
         -- session-dedupe key means repeated movement inside the same UiMapID does
-        -- not create additional Wago counters, but a newly reported map can.
+        -- not create additional Wago counters or dashboard-visible switches, but
+        -- a newly reported map can.
         ScheduleVisitScan(0.3)
         ScheduleAvailableScan(0.3)
     else
@@ -576,13 +655,14 @@ local function WagoStatus()
 
     if IsWagoAnalyticsLoaded() then
         Print(string.format(
-            "Wago telemetry is registered for project %s. This session queued %d phase-quest, %d map/quest, %d map-visit, %d phase-visit, and %d instance-visit observations; upload still depends on the player's Wago App Analytics sharing setting.",
+            "Wago telemetry is registered for project %s. This session queued %d phase-quest, %d map/quest, %d map-visit, %d phase-visit, %d instance-visit observations, and %d dashboard discovery switches; upload still depends on the player's Wago App Analytics sharing setting.",
             tostring(projectID),
             phaseSentCount,
             mapQuestSentCount,
             mapVisitSentCount,
             phaseVisitSentCount,
-            instanceVisitSentCount
+            instanceVisitSentCount,
+            discoverySwitchSentCount
         ))
     else
         Print("Wago project " .. tostring(projectID) .. " is configured and the shim is ready, but the WagoAnalytics addon is not loaded on this client.")
@@ -618,5 +698,6 @@ ZQG.GetWagoTelemetryStatus = function()
         mapVisitSent = mapVisitSentCount,
         phaseVisitSent = phaseVisitSentCount,
         instanceVisitSent = instanceVisitSentCount,
+        discoverySwitchSent = discoverySwitchSentCount,
     }
 end
