@@ -1,6 +1,6 @@
 # Zone Quest Guide
 
-**Version:** 0.2.25  
+**Version:** 0.2.26  
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished quests for the current zone, points the player toward the next useful target, and learns anonymous map/quest, timeline, and instance evidence while the player quests.
@@ -20,8 +20,8 @@ Zone Quest Guide is a lightweight World of Warcraft addon that shows unfinished 
 - Learns **map ID + map name + quest associations** even when no historical phase is known.
 - Learns anonymous instance/scenario fingerprints such as map ID, instance ID, difficulty ID, LFG ID, instance type, and group-size metadata.
 - Exports anonymous learning data with WoW-safe tab-separated fields.
-- Can forward stronger anonymous phase, map/quest, map-visit, phase-visit, and instance-fingerprint evidence through Wago Analytics when the player has Wago Analytics sharing enabled.
-- Mirrors privacy-safe map, reliable-phase, and instance discoveries into Wago **Switches** so useful crowd observations remain visible while Wago's Counters dashboard is unavailable.
+- Can forward anonymous `seen`, `available`, `offered`, `accepted`, `active`, and `turnedIn` quest evidence plus completion support through Wago Analytics when the player has Wago Analytics sharing enabled.
+- Mirrors privacy-safe map, reliable-phase, quest-evidence, and instance discoveries into Wago **Switches** so useful crowd observations remain visible while Wago's Counters dashboard is unavailable.
 - Builds a clean GitHub package named **ZoneQuestGuide.zip** through GitHub Actions.
 - Includes stable `/zq phase`, `/zq maps`, `/zq mapid`, `/zq inspect`, and `/zq check` diagnostics.
 
@@ -34,6 +34,8 @@ Zone Quest Guide keeps an account-wide `ZoneQuestGuideDB.mapQuestLearning` store
 - quest ID and quest name;
 - whether the quest was seen as available, offered, accepted, active, or turned in;
 - supporting completion state.
+
+The evidence types intentionally mean different things. `available` is a Blizzard map/quest-line API hint and is not treated as proof that the quest can actually be started in the current timeline. `accepted` is also weak because a character can carry a quest after moving between maps or phases. NPC `offered`, NPC `active`, and `turnedIn` observations are stronger evidence that the quest genuinely exists in that world state.
 
 The map collector does not require Zidormi or a known timeline. This is useful for discovering live Retail replacement/alias maps such as Midnight Quel'Thalas.
 
@@ -66,14 +68,14 @@ Version 0.2.24 adds an account-wide `ZoneQuestGuideDB.instanceLearning` store fo
 - difficulty ID/name;
 - maximum-player and instance-group-size values exposed by WoW;
 - LFG dungeon ID when available;
-- scenario name/type/area metadata when available;
+- scenario name/type/area/texture-kit metadata when available;
 - faction and the current Zone Quest Guide timeline/source if one is known.
 
 `/zq inspect` (also `/zq instance`) prints the current fingerprint directly in chat. This is intended for tests such as comparing **Normal vs Heroic Battle for Stromgarde** or identifying which of Blizzard's alternate Arathi/Darkshore map IDs is actually used by a Warfront instance.
 
 `/zq instanceexport` opens just the instance-learning block. `/zq export` includes the instance block after the existing phase and map/quest blocks.
 
-The local export can contain Blizzard's localized instance/scenario names because the player explicitly chooses whether to copy it. Automatic Wago instance telemetry is stricter: it sends only coarse IDs/type/faction/group-size fields and does not include instance names, scenario names, coordinates, timestamps, character/account identity, chat, or group-member information.
+The local export can contain Blizzard's localized map/instance/scenario names because the player explicitly chooses whether to copy it. Automatic Wago instance telemetry is stricter: it sends the stable/non-name context used for research — map ID, parent map ID, instance ID/type, difficulty ID, LFG ID, maximum/group-size values, scenario type/area/texture-kit fields when available, faction, and timeline/source — while leaving localized names, coordinates, timestamps, character/account identity, chat, and group-member information out of metric keys.
 
 ### Live-confirmed Heroic Battle for Stromgarde fingerprint
 
@@ -142,7 +144,7 @@ Version 0.2.20 adds direct map-derived Tirisfal detection so map `2070` can iden
 
 ### Live-confirmed Uldum maps
 
-Retail testing confirmed Uldum also uses separate live maps across its Zidormi switch:
+Retail testing confirmed Uldum also uses separate live maps across the Zidormi switch:
 
 - `1527 / Uldum` was observed in **PRESENT / N'Zoth assaults** while Zidormi offered **"Can you show me what Uldum was like during the time of the Cataclysm?"**.
 - After selecting that historical option, the live map changed to `249 / Uldum`. The main timeline line showed **PAST / Cataclysm Uldum** after Zidormi was reopened, and Zidormi offered **"Can you return me to the present time?"**.
@@ -210,25 +212,27 @@ Configured project ID: `EGPeM3N1`.
 
 When WagoAnalytics is available, Zone Quest Guide can contribute anonymous evidence while the player uses the addon normally:
 
-- **Phase quest evidence:** map ID, faction, reliable phase, quest ID, evidence type, and phase source.
-- **Map/quest evidence:** map ID, faction, quest ID, and evidence type even when no historical phase is known.
+- **Phase quest evidence:** map ID, faction, reliable phase, quest ID, `seen`/`available`/`offered`/`accepted`/`active`/`turnedIn` evidence type, completion support, and phase source.
+- **Map/quest evidence:** map ID, faction, quest ID, the same six evidence classes, and completion support even when no historical phase is known.
 - **Map visits:** map ID + faction, once per map/faction during the UI session.
 - **Phase visits:** map ID + faction + reliable Zidormi/detected phase/source.
-- **Instance visits:** map ID, instance ID, difficulty ID, LFG ID, maximum/group-size values, instance type, and faction.
-- **Dashboard discovery switches:** privacy-safe mirrors of map, reliable-phase, and instance visits using `seen_map_...`, `seen_phase_...`, and `seen_instance_...` names.
+- **Instance visits:** map ID, parent map ID, instance ID, difficulty ID, LFG ID, maximum/group-size values, scenario type/area/texture-kit context, instance type, faction, and timeline/source when available.
+- **Dashboard discovery switches:** privacy-safe mirrors of map, reliable-phase, quest-evidence, and instance observations using `seen_map_...`, `seen_phase_...`, `seen_quest_...`, `seen_mapquest_...`, and `seen_instance_...` names.
 
-Version 0.2.25 adds the switch mirrors because Wago's Analytics **Counters** page currently reports that its dashboard will be released later, while the **Switches** dashboard is already available. The existing counters remain enabled; the switches are a visibility layer rather than a replacement for aggregate counters.
+Version 0.2.26 expands the Wago stream to carry the research evidence that previously existed only in the local export. `available` remains useful but is explicitly preserved as an API/map hint rather than being promoted to proof of quest existence. `accepted` remains explicitly weak because the quest can have been picked up elsewhere. NPC `offered`, NPC `active`, and `turnedIn` observations are the stronger evidence used when deciding whether a quest genuinely exists in a specific timeline.
 
-Only stronger **available**, **offered**, **active**, and **turned-in** quest observations are automatically reported. Accepted-only and generic seen observations remain local. Taxi-flight map scans are suppressed. Reliable phase mirrors require a `zidormi` or `detected` source; manual phase overrides are not promoted into community telemetry.
+Completion is reported as a numeric Wago counter associated with the quest/map context, allowing `0` and `1` support to be retained separately from the evidence counters. Every reported quest also produces a generic `seen` observation, matching the local export's structure more closely.
 
-Character names, realms, guild names, GUIDs, account identifiers, quest names, instance names, scenario names, coordinates, timestamps, chat, party/raid member names, and manual phase overrides are not included in Wago metric or discovery-switch names.
+Wago's Analytics **Counters** page currently reports that its dashboard will be released later, while the **Switches** dashboard is already available. Counters remain the complete research stream. Quest discovery switches are a visibility layer and are limited to 150 per UI session inside the existing 200 total discovery-switch cap, leaving room for map/phase/instance fingerprints even during long questing sessions.
 
-Dynamic discovery switches are deduplicated for the current UI session and capped at 200 per session so unusually long exploration sessions leave headroom for Zone Quest Guide's normal Wago feature switches.
+Reliable phase telemetry still requires a `zidormi` or `detected` source; manual phase overrides are not promoted into community telemetry. Taxi-flight map scans remain suppressed.
+
+Character names, realms, guild names, GUIDs, account identifiers, quest names, map names, instance names, difficulty names, scenario names, coordinates, timestamps, chat, party/raid member names, and manual phase overrides are not included in Wago metric or discovery-switch names. Stable numeric IDs and non-name context are used instead wherever possible.
 
 - `/zq wago` — show Wago bridge status and this UI session's queued counters/discovery switches.
 - `/zq telemetry` — alias for `/zq wago`.
 
-The Wago App was observed with **Support Addon Developers** enabled and its Developers page reporting a transmitted analytics timestamp. The Wago website then displayed ZoneQuestGuide's existing custom feature switches, confirming that switch data reached the Analytics dashboard. The new v0.2.25 dynamic discovery-switch names still require their own post-update in-game test.
+The Wago App was observed with **Support Addon Developers** enabled and its Developers page reporting a transmitted analytics timestamp. The Wago website then displayed ZoneQuestGuide's existing custom feature switches, confirming that switch data reached the Analytics dashboard. The v0.2.26 quest-evidence switches, completion counters, accepted/seen stream, and richer instance fingerprint still require post-update in-game testing.
 
 Wago upload still depends on the player's Wago App Analytics-sharing setting. No downloadable Wago release has been published yet, so **GitHub remains the only listed distribution platform**.
 
@@ -264,7 +268,7 @@ Quests with meaningful reward choices remain open for manual selection. Holding 
 
 ## GitHub ZIP packages
 
-GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.25.zip`.
+GitHub's built-in **Code -> Download ZIP** is a source archive and will still use a branch suffix such as `ZoneQuestGuide-main.zip`. The repository's GitHub Actions packaging workflow produces a clean artifact named **ZoneQuestGuide.zip** containing a top-level `ZoneQuestGuide/` addon folder. GitHub Releases can also receive a versioned package such as `ZoneQuestGuide-0.2.26.zip`.
 
 ## Install
 
@@ -276,25 +280,26 @@ GitHub's built-in **Code -> Download ZIP** is a source archive and will still us
 
 ## Important limitations
 
-WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Map/quest and instance learning record evidence, not automatic proof that a quest or instance belongs exclusively to one map/timeline/difficulty. Wago counters and discovery switches are aggregated evidence and do not replace review of local/manual exports.
+WoW's live addon APIs do not reliably expose every historical unaccepted side quest. Map/quest and instance learning record evidence, not automatic proof that a quest or instance belongs exclusively to one map/timeline/difficulty. In particular, `C_QuestLine.GetAvailableQuestLines()` can expose a quest in more than one timeline, so `available` observations are treated as hints rather than phase-existence proof. Wago counters and discovery switches are aggregated evidence and still require confidence-aware review before being promoted into curated quest requirements.
 
 Supplemental `blockedBy` and `exclusiveWith` rules are curated relationships, not relationships inferred automatically from completion history. Incorrect quest IDs could hide a valid supplemental quest, so they should be added only from reliable evidence.
 
-## In-game/test plan for v0.2.25
+## In-game/test plan for v0.2.26
 
-1. Update to v0.2.25 and `/reload`.
-2. In the outdoor world, run `/zq check`. After the normal map-visit scan, confirm `discoveries` is at least `1` and does not keep increasing while moving around on the same `UiMapID`.
-3. `/reload` again after generating the observation, leave the Wago App running with **Support Addon Developers** enabled, and verify Wago Analytics -> Switches eventually shows `discovery_switch_mirroring_enabled` plus a `seen_map_m<map>_<faction>` switch for the visited map.
-4. Enter an instance or Warfront and run `/zq inspect` plus `/zq check`. Confirm a new instance fingerprint increases `instancevisit` and `discoveries` once.
-5. For the already confirmed Alliance Heroic Stromgarde fingerprint, verify the Switches page can receive `seen_instance_m1044_i1943_d149_lfg2007_max30_grp10_scenario_alliance` after the session is saved/uploaded.
-6. In a timeline zone with a reliable `zidormi` or `detected` phase, verify a `seen_phase_m...` switch is generated; verify UNKNOWN/manual phases do not create phase discovery switches.
-7. Confirm taxi flights still do not create flyover `seen_map_...` switches and that no discovery-switch name contains character, realm, guild, account, chat, coordinate, instance-name, scenario-name, or group-member data.
-8. Continue the Normal Battle for Stromgarde comparison and record whether it reuses map `1044`/instance `1943` with a different difficulty/LFG fingerprint or uses another map/instance context.
-9. Open `/zq instanceexport` and `/zq export`; verify `ZQGINSTANCEDATA|1` remains intact after the telemetry change.
-10. Continue testing the known Arathi three-state edge case where map `14` requires reliable Zidormi context to distinguish PAST from FOURTH WAR.
+1. Update to v0.2.26 and `/reload`.
+2. Run `/zq check` outdoors. Confirm the normal map scan increases `mapvisit` and `discoveries` without repeatedly increasing while standing on the same map.
+3. Visit an NPC with a quest offer. Open the gossip/quest-detail page, then run `/zq check`; verify the map/quest count rises and, in a reliably detected timeline, the phase count rises too.
+4. Accept one quest. Verify another map/quest observation is queued as `accepted`; if the timeline is reliable, verify the phase stream also records the accepted evidence even though it remains weak evidence for existence.
+5. If convenient, turn a quest in and run `/zq check` again so the `turnedIn` path and completion-state update are exercised.
+6. `/reload` after generating observations, keep the Wago App running with Analytics sharing enabled, and check Wago Analytics -> Switches for `full_research_telemetry_enabled` plus `seen_mapquest_...` and, in a reliable phase, `seen_quest_...` entries.
+7. Confirm an `available` and an `offered` observation for the same quest remain visibly distinct in their switch names rather than being collapsed into one quest-exists signal.
+8. Re-enter Heroic Battle for Stromgarde if convenient and run `/zq inspect` plus `/zq check`; confirm the richer v0.2.26 instance fingerprint still increments `instancevisit` and produces a `seen_instance_...` switch without exceeding the metric-name limit.
+9. Confirm taxi flights do not generate flyover quest/map observations and that no Wago metric/switch name contains character, realm, guild, account, chat, coordinate, quest-name, map-name, instance-name, scenario-name, or group-member information.
+10. Wago's Counters dashboard is not currently available, so direct website verification of the new completion counters and complete evidence-counter stream remains outstanding even if the Switches mirror appears correctly.
 
 ## Roadmap
 
+- Use crowd evidence to distinguish quests genuinely offered in PAST/PRESENT/Fourth-War states from quests that Blizzard only exposes as map/API hints.
 - Use dashboard-visible discovery switches and collected instance fingerprints to identify Warfront/scenario map IDs and Normal/Heroic differences without requiring one developer character to visit every variant.
 - Use collected map/quest associations to discover more Retail map aliases automatically.
 - Validate remaining Zidormi/Rhonormu timeline zones in-game, especially Darkshore, Dustwallow Marsh, Vale of Eternal Blossoms, and Peak of Serenity.
